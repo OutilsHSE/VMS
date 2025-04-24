@@ -174,11 +174,6 @@
       cursor: pointer;
     }
 
-    .large-row {
-      height: 50px;
-      display: flex;
-    }
-
     .picto {
       width: 50px;
     }
@@ -195,8 +190,9 @@
       /* Aligner les éléments verticalement au centre */
       justify-content: space-between;
       /* Espacer les éléments uniformément */
-      padding: 10px;
       /* Ajouter un peu de padding autour du conteneur */
+      margin-bottom: 50px;
+      background-color: rgb(116, 204, 239);
     }
 
     /* Styles pour les images */
@@ -207,11 +203,22 @@
       /* Maintenir les proportions des images */
     }
 
-    .regles {
-      max-width: 250px;
-      /* Ajuster la taille des images selon vos besoins */
-      height: auto;
-      /* Maintenir les proportions des images */
+    @media (max-width: 600px) {
+      .regles {
+        max-width: 250px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .regles {
+        max-width: 500px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
     }
 
     /* Style pour le titre */
@@ -248,6 +255,45 @@
     .regles {
       width: 100%;
     }
+    .aligned-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .aligned-table th, .aligned-table td {
+          
+            width: 40%;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
+        }
+
+        .large-row {
+          height: 50px;
+            display: flex;
+            align-items: center;
+        }
+        
+
+        .signature-canvas {
+            flex-grow: 1;
+            border: 1px solid #000;
+        }
+
+        button {
+            margin-left: auto;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
+        }
+        .input-bilan {
+          height: 50px;
+        }
+
   </style>
 </head>
 
@@ -287,9 +333,26 @@
     <button class="add-row" onclick="addRow()">Ajouter une observation</button>
     <button class="export" onclick="print()">Imprimer / Exporter</button>
   </div>
-  <table>
-    <th>Perception générale du visiteur et signature</th>
-    <th>Commentaires des personnes rencontrées et signature</th>
+  <table class="aligned-table">
+    <th>Bilan globale de la VMS</th>
+    <th>Commentaires des collaborateurs</th>
+    <tr>
+      <td>
+        <div class="large-row">
+          <input class="input-bilan" type="text">
+        </div>
+      </td>
+      <td>
+        <div class="large-row">
+          <input class="input-bilan" type="text">
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="aligned-table">
+    <th>Signature Visiteur</th>
+    <th>Signature Intervenants</th>
     <tr>
       <td>
         <div class="large-row">
@@ -309,6 +372,15 @@
   <!-- Structure de la modale -->
   <div id="imageModal" class="modal">
     <div class="modal-content">
+      <h1> Informations générales</h1>
+      <ul>
+        <li> 3 étapes : Observer/Discuter/Se mettre d’accord </li>
+        <li> Pas de jugements, de réprimandes ou de mesures disciplinaires</li>
+        <li> Se concentrer sur les points positifs et les points à améliorer (3 PP pour 1 AD/CD)</li>
+        <li> Donner la priorité aux actions immédiates</li>
+        <li> Les actions doivent être convenues conjointement entre le visiteur et la personne rencontrée</li>
+        <li> Se concentrer sur les Règles qui Sauvent des vies </li>
+      </ul>
       <ul class="abreviations">
         <li>PP : Point Positif</li>
         <li>AD : Acte Dangereux : téléphoner en conduisant, opération de travail sans EPI </li>
@@ -342,10 +414,10 @@
           <option value="AD">AD 🚫</option>
         </select></td>
         <td><input type="text" placeholder="Description"></td>
-        <td><input type="text" placeholder="Action à mener"></td>
-        <td><input type="text" placeholder="Responsable"></td>
-        <td><input type="date"></td>
-        <td><select id='etatSelect'><option>À planifier</option><option>En cours</option><option>Clôturée</option></select></td>
+        <td><input type="text" class="can-disable" placeholder="Action à mener"></td>
+        <td><input type="text" class="can-disable" placeholder="Responsable"></td>
+        <td><input type="date" class="can-disable" ></td>
+        <td><select class="can-disable"><option>À planifier</option><option>En cours</option><option>Clôturée</option></select></td>
         <td><button class="remove-row" onclick="removeRow(this)">✖</button></td>
       `;
       tbody.appendChild(tr);
@@ -358,14 +430,11 @@
     }
     function toggleInputs(selectElement) {
       const tr = selectElement.closest('tr');
-      const inputs = tr.querySelectorAll('input');
-      const etatSelect = tr.querySelector('#etatSelect'); // ← on cible par ID
+      const inputs = tr.querySelectorAll('.can-disable');
       if (selectElement.value === 'PP') {
         inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
-        if (etatSelect) etatSelect.setAttribute('disabled', 'disabled');
       } else {
         inputs.forEach(input => input.removeAttribute('disabled'));
-        if (etatSelect) etatSelect.removeAttribute('disabled');
       }
     }
     document.addEventListener('DOMContentLoaded', function () {
@@ -456,16 +525,604 @@
         ctx.lineCap = 'round';
         ctx.strokeStyle = '#000';
 
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+          // Utiliser les coordonnées du premier touch point
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          // Utiliser les coordonnées de la souris
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        ctx.lineTo(clientX - rect.left, clientY - rect.top);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.moveTo(clientX - rect.left, clientY - rect.top);
       }
 
+      // Ajouter des écouteurs pour les événements de souris
       canvas.addEventListener('mousedown', startPosition);
       canvas.addEventListener('mouseup', endPosition);
       canvas.addEventListener('mouseout', endPosition);
       canvas.addEventListener('mousemove', draw);
+
+      // Ajouter des écouteurs pour les événements tactiles
+      canvas.addEventListener('touchstart', startPosition);
+      canvas.addEventListener('touchend', endPosition);
+      canvas.addEventListener('touchcancel', endPosition);
+      canvas.addEventListener('touchmove', draw);
+    }
+
+    // Initialisation
+    setupCanvas('drawingCanvas1');
+    setupCanvas('drawingCanvas2');
+
+    // Bouton pour effacer
+    function clearCanvas(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  </script>
+</body>
+
+</html><!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trame VMS Interactive</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      font-size: 14px;
+    }
+
+    h1 {
+      text-align: left;
+    }
+
+    .top-fields {
+      display: flex;
+      flex-wrap: wrap;
+      /* Permettre aux éléments de passer à la ligne si nécessaire */
+      gap: 20px;
+      /* Espace entre les éléments */
+      margin-bottom: 20px;
+      align-items: baseline;
+    }
+
+    .top-fields label {
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+
+    .top-fields input {
+      margin-left: 10px;
+      /* Espace entre le label et l'input */
+      flex: 1;
+      /* Permettre à l'input de prendre l'espace disponible */
+    }
+
+    /* Style pour les petits écrans */
+    @media (max-width: 600px) {
+      .top-fields {
+        flex-direction: column;
+        /* Disposer les éléments en colonne */
+        align-items: flex-start;
+        /* Aligner les éléments à gauche */
+      }
+
+      .top-fields label {
+        width: 100%;
+        /* Prendre toute la largeur disponible */
+      }
+
+      .top-fields input {
+        width: calc(100% - 10px);
+        /* Ajuster la largeur de l'input pour tenir compte de la marge */
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    select,
+    input[type="text"],
+    input[type="date"] {
+      width: 100%;
+    }
+
+    .PP {
+      background: #e6ffe6;
+    }
+
+    .CD {
+      background: #fff5e6;
+    }
+
+    .AD {
+      background: #ffe6e6;
+    }
+
+    .counters {
+      margin-bottom: 20px;
+    }
+
+    .counters span {
+      margin-right: 15px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .add-row {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .show-consignes {
+      background: #f44336;
+      color: white;
+    }
+
+    .remove-row {
+      background: #f44336;
+      color: white;
+    }
+
+    .export {
+      background: #2196F3;
+      color: white;
+    }
+
+    .abreviations {
+      color: #f44336;
+      font-size: smaller;
+    }
+
+    .buttons {
+      margin-bottom: 10px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0, 0, 0);
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+      margin: 15% auto;
+      padding: 20px;
+      width: 80%;
+      background-color: #fefefe;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .picto {
+      width: 50px;
+    }
+
+    input::placeholder {
+      font-size: 0.7rem;
+      /* Taille par défaut */
+    }
+
+    /* Conteneur principal utilisant Flexbox */
+    .container {
+      display: flex;
+      align-items: center;
+      /* Aligner les éléments verticalement au centre */
+      justify-content: space-between;
+      /* Espacer les éléments uniformément */
+      /* Ajouter un peu de padding autour du conteneur */
+      margin-bottom: 50px;
+      background-color: rgb(116, 204, 239);
+    }
+
+    /* Styles pour les images */
+    .logo {
+      max-width: 100px;
+      /* Ajuster la taille des images selon vos besoins */
+      height: auto;
+      /* Maintenir les proportions des images */
+    }
+
+    @media (max-width: 600px) {
+      .regles {
+        max-width: 250px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .regles {
+        max-width: 500px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+    }
+
+    /* Style pour le titre */
+    h1 {
+      margin: 0;
+      /* Supprimer la marge par défaut */
+      font-size: 2rem;
+      /* Ajuster la taille du texte selon vos besoins */
+    }
+
+    /* Pour les écrans de largeur inférieure à 600px */
+    @media (max-width: 600px) {
+      input::placeholder {
+        font-size: 0.3rem;
+        /* Taille plus petite pour les petits écrans */
+      }
+
+      input,
+      select {
+        font-size: 0.3rem;
+        /* Taille plus petite pour les petits écrans */
+      }
+
+    }
+
+    /* Pour les écrans de largeur supérieure à 1200px */
+    @media (min-width: 1200px) {
+      input::placeholder {
+        font-size: 1.0rem;
+        /* Taille plus grande pour les grands écrans */
+      }
+    }
+
+    .regles {
+      width: 100%;
+    }
+    .aligned-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .aligned-table th, .aligned-table td {
+          
+            width: 40%;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
+        }
+
+        .large-row {
+          height: 50px;
+            display: flex;
+            align-items: center;
+        }
+        
+
+        .signature-canvas {
+            flex-grow: 1;
+            border: 1px solid #000;
+        }
+
+        button {
+            margin-left: auto;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
+        }
+        .input-bilan {
+          height: 50px;
+        }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img class="logo" src="CDES_Logo.png" alt="">
+    <h1> VMS</h1>
+    <img class="regles" src="regles.png" alt="">
+  </div>
+  <div class="top-fields">
+    <label>Date:<input type="date" id="visite-date" value=""></label>
+    <label>Chantier:<input type="text" id="chantier" placeholder="Nom du chantier"></label>
+    <label>Conducteur de travaux:<input type="text" id="visiteur" placeholder="Nom / Fonction"></label>
+    <label>Collaborateurs rencontrés:<input type="text" id="visiteur" placeholder="Nom"></label>
+  </div>
+  <div class="counters">
+    <span>PP 👍: <span id="count-PP">0</span></span>
+    <span>CD ⚠️: <span id="count-CD">0</span></span>
+    <span>AD 🚫: <span id="count-AD">0</span></span>
+    <button class="show-consignes" id="openModalBtn">?</button>
+  </div>
+  <table id="obs-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Action</th>
+        <th>Pilote</th>
+        <th>Échéance</th>
+        <th>Statut</th>
+        <th>Suppr.</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="buttons">
+    <button class="add-row" onclick="addRow()">Ajouter une observation</button>
+    <button class="export" onclick="print()">Imprimer / Exporter</button>
+  </div>
+  <table class="aligned-table">
+    <th>Bilan globale de la VMS</th>
+    <th>Commentaires des collaborateurs</th>
+    <tr>
+      <td>
+        <div class="large-row">
+          <input class="input-bilan" type="text">
+        </div>
+      </td>
+      <td>
+        <div class="large-row">
+          <input class="input-bilan" type="text">
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="aligned-table">
+    <th>Signature Visiteur</th>
+    <th>Signature Intervenants</th>
+    <tr>
+      <td>
+        <div class="large-row">
+          <canvas id="drawingCanvas1" class="signature-canvas"></canvas>
+          <button onclick="clearCanvas('drawingCanvas1')">🧹 Effacer</button>
+        </div>
+      </td>
+      <td>
+        <div class="large-row">
+          <canvas id="drawingCanvas2" class="signature-canvas"></canvas>
+          <button onclick="clearCanvas('drawingCanvas2')">🧹 Effacer</button>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Structure de la modale -->
+  <div id="imageModal" class="modal">
+    <div class="modal-content">
+      <h1> Informations générales</h1>
+      <ul>
+        <li> 3 étapes : Observer/Discuter/Se mettre d’accord </li>
+        <li> Pas de jugements, de réprimandes ou de mesures disciplinaires</li>
+        <li> Se concentrer sur les points positifs et les points à améliorer (3 PP pour 1 AD/CD)</li>
+        <li> Donner la priorité aux actions immédiates</li>
+        <li> Les actions doivent être convenues conjointement entre le visiteur et la personne rencontrée</li>
+        <li> Se concentrer sur les Règles qui Sauvent des vies </li>
+      </ul>
+      <ul class="abreviations">
+        <li>PP : Point Positif</li>
+        <li>AD : Acte Dangereux : téléphoner en conduisant, opération de travail sans EPI </li>
+        <li>CD : Condition dangereuse : une consigne pas à jour, des trous dans le sol, absence de balisage </li>
+      </ul>
+      <span class="close">&times;</span>
+    </div>
+  </div>
+
+  <script>
+    function updateCounters() {
+      const rows = document.querySelectorAll('#obs-table tbody tr');
+      let cPP = 0, cCD = 0, cAD = 0;
+      rows.forEach(r => {
+        const type = r.querySelector('.type-select').value;
+        if (type === 'PP') cPP++;
+        if (type === 'CD') cCD++;
+        if (type === 'AD') cAD++;
+      });
+      document.getElementById('count-PP').textContent = cPP;
+      document.getElementById('count-CD').textContent = cCD;
+      document.getElementById('count-AD').textContent = cAD;
+    }
+    function addRow() {
+      const tbody = document.querySelector('#obs-table tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><select class="type-select" id="mySelect" onchange="applyColor(this); updateCounters()">
+          <option value="PP">PP 👍</option>
+          <option value="CD">CD ⚠️</option>
+          <option value="AD">AD 🚫</option>
+        </select></td>
+        <td><input type="text" placeholder="Description"></td>
+        <td><input type="text" class="can-disable" placeholder="Action à mener"></td>
+        <td><input type="text" class="can-disable" placeholder="Responsable"></td>
+        <td><input type="date" class="can-disable" ></td>
+        <td><select class="can-disable"><option>À planifier</option><option>En cours</option><option>Clôturée</option></select></td>
+        <td><button class="remove-row" onclick="removeRow(this)">✖</button></td>
+      `;
+      tbody.appendChild(tr);
+      applyColor(tr.querySelector('.type-select'));
+      updateCounters();
+    }
+    function removeRow(btn) {
+      btn.closest('tr').remove();
+      updateCounters();
+    }
+    function toggleInputs(selectElement) {
+      const tr = selectElement.closest('tr');
+      const inputs = tr.querySelectorAll('.can-disable');
+      if (selectElement.value === 'PP') {
+        inputs.forEach(input => input.setAttribute('disabled', 'disabled'));
+      } else {
+        inputs.forEach(input => input.removeAttribute('disabled'));
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      const selectElement = document.getElementById('mySelect');
+      if (selectElement) {
+        selectElement.addEventListener('change', function () {
+          toggleInputs(this);
+        });
+
+        // Appel initial pour définir l'état des inputs en fonction de la valeur par défaut
+        toggleInputs(selectElement);
+      }
+    });
+
+    function applyColor(selectElement) {
+      const tr = selectElement.closest('tr');
+      if (selectElement.value === 'PP') {
+        tr.style.backgroundColor = '#d4edda'; // Couleur pour PP
+      } else if (selectElement.value === 'CD') {
+        tr.style.backgroundColor = '#fff3cd'; // Couleur pour CD
+      } else if (selectElement.value === 'AD') {
+        tr.style.backgroundColor = '#f8d7da'; // Couleur pour AD
+      } else {
+        tr.style.backgroundColor = ''; // Réinitialiser la couleur
+      }
+      toggleInputs(tr.querySelector('.type-select'));
+    }
+
+
+    // Fonction pour ouvrir la modale
+    function openModal(imageUrl) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImage');
+      modal.style.display = 'block';
+    }
+
+    // Fonction pour fermer la modale
+    function closeModal() {
+      const modal = document.getElementById('imageModal');
+      modal.style.display = 'none';
+    }
+
+    // Écouteur d'événement pour le bouton d'ouverture
+    document.getElementById('openModalBtn').onclick = function () {
+      openModal('regles.png');
+    };
+
+    // Écouteur d'événement pour le bouton de fermeture
+    document.getElementsByClassName('close')[0].onclick = function () {
+      closeModal();
+    };
+
+    // Fermer la modale si l'utilisateur clique en dehors de l'image
+    window.onclick = function (event) {
+      const modal = document.getElementById('imageModal');
+      if (event.target == modal) {
+        closeModal();
+      }
+    };
+
+    window.onload = function () {
+      addRow();
+      document.getElementById('visite-date').valueAsDate = new Date();
+    }
+
+    function setupCanvas(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+
+      let painting = false;
+
+      function startPosition(e) {
+        painting = true;
+        draw(e);
+      }
+
+      function endPosition() {
+        painting = false;
+        ctx.beginPath();
+      }
+
+      function draw(e) {
+        if (!painting) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+          // Utiliser les coordonnées du premier touch point
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          // Utiliser les coordonnées de la souris
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        ctx.lineTo(clientX - rect.left, clientY - rect.top);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(clientX - rect.left, clientY - rect.top);
+      }
+
+      // Ajouter des écouteurs pour les événements de souris
+      canvas.addEventListener('mousedown', startPosition);
+      canvas.addEventListener('mouseup', endPosition);
+      canvas.addEventListener('mouseout', endPosition);
+      canvas.addEventListener('mousemove', draw);
+
+      // Ajouter des écouteurs pour les événements tactiles
+      canvas.addEventListener('touchstart', startPosition);
+      canvas.addEventListener('touchend', endPosition);
+      canvas.addEventListener('touchcancel', endPosition);
+      canvas.addEventListener('touchmove', draw);
     }
 
     // Initialisation
