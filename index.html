@@ -73,6 +73,7 @@
       text-align: center;
     }
 
+
     th {
       background: #f0f0f0;
     }
@@ -255,45 +256,160 @@
     .regles {
       width: 100%;
     }
+
     .aligned-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
 
-        .aligned-table th, .aligned-table td {
-          
-            width: 40%;
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
-        }
+    .aligned-table th,
+    .aligned-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      vertical-align: top;
+      width: 50%;
+    }
 
-        .large-row {
-          height: 50px;
-            display: flex;
-            align-items: center;
-        }
-        
+    .input-bilan {
+      width: 100%;
+      resize: vertical;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+      font-size: 14px;
+    }
 
-        .signature-canvas {
-            flex-grow: 1;
-            border: 1px solid #000;
-        }
 
-        button {
-            margin-left: auto;
-        }
+    @media (max-width: 600px) {
 
-        input[type="text"] {
-            width: 100%;
-            box-sizing: border-box; /* Assure que le padding et la bordure sont inclus dans la largeur */
-        }
-        .input-bilan {
-          height: 50px;
-        }
+      .aligned-table th,
+      .aligned-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
 
+      .aligned-table tr {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .aligned-table th {
+        background-color: #f0f0f0;
+        /* Exemple de couleur de fond pour les en-têtes */
+        font-weight: bold;
+      }
+    }
+
+    .large-row {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+    }
+
+
+    .signature-canvas {
+      flex-grow: 1;
+      border: 1px solid #000;
+    }
+
+    button {
+      margin-left: auto;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      /* Assure que le padding et la bordure sont inclus dans la largeur */
+    }
+
+    .input-bilan {
+      height: 50px;
+    }
+
+    @media print {
+
+      /* Cache les boutons et éléments non pertinents à l'impression */
+      button,
+      .no-print {
+        display: none !important;
+      }
+
+      /* Supprime les marges inutiles */
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Forcer les canvas à s'afficher correctement */
+      canvas {
+        border: 1px solid #000 !important;
+        display: block;
+        page-break-inside: avoid;
+      }
+
+      /* Évite que les tableaux soient coupés entre deux pages */
+      table {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        table-layout: fixed;
+      }
+
+      /* Fixer les largeurs des colonnes si nécessaire */
+      th,
+      td {
+        width: 50%;
+      }
+
+      textarea.description {
+        width: 100%;
+        height: 150px;
+        overflow: visible;
+        box-sizing: border-box;
+        resize: none;
+        border: none;
+        font-size: 14px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-width: 100px;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      td,
+      th {
+        vertical-align: top;
+      }
+
+      /* Agrandir les zones de texte pour qu'elles ne soient pas tronquées */
+      textarea {
+        border: none;
+        resize: none;
+        overflow: visible;
+        font-size: 14pt;
+      }
+
+
+      canvas.signature-canvas {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #000 !important;
+        display: block;
+        page-break-inside: avoid;
+      }
+
+      .sign {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .input-bilan {
+        height: 200px;
+      }
+
+    }
   </style>
 </head>
 
@@ -334,17 +450,17 @@
     <button class="export" onclick="print()">Imprimer / Exporter</button>
   </div>
   <table class="aligned-table">
-    <th>Bilan global de la VMS</th>
+    <th>Bilan globale de la VMS</th>
     <th>Commentaires des collaborateurs</th>
     <tr>
       <td>
         <div class="large-row">
-          <input class="input-bilan" type="text">
+          <textarea class="input-bilan" type="text"></textarea>
         </div>
       </td>
       <td>
         <div class="large-row">
-          <input class="input-bilan" type="text">
+          <textarea class="input-bilan" type="text"></textarea>
         </div>
       </td>
     </tr>
@@ -355,13 +471,13 @@
     <th>Signature Intervenants</th>
     <tr>
       <td>
-        <div class="large-row">
+        <div class="sign">
           <canvas id="drawingCanvas1" class="signature-canvas"></canvas>
           <button onclick="clearCanvas('drawingCanvas1')">🧹 Effacer</button>
         </div>
       </td>
       <td>
-        <div class="large-row">
+        <div class="sign">
           <canvas id="drawingCanvas2" class="signature-canvas"></canvas>
           <button onclick="clearCanvas('drawingCanvas2')">🧹 Effacer</button>
         </div>
@@ -413,7 +529,7 @@
           <option value="CD">CD ⚠️</option>
           <option value="AD">AD 🚫</option>
         </select></td>
-        <td><input type="text" placeholder="Description"></td>
+        <td><textarea type="text" class="description" placeholder="Description"></textarea></td>
         <td><input type="text" class="can-disable" placeholder="Action à mener"></td>
         <td><input type="text" class="can-disable" placeholder="Responsable"></td>
         <td><input type="date" class="can-disable" ></td>
@@ -511,11 +627,13 @@
       function startPosition(e) {
         painting = true;
         draw(e);
+        e.preventDefault(); // Empêche le comportement par défaut
       }
 
-      function endPosition() {
+      function endPosition(e) {
         painting = false;
         ctx.beginPath();
+        e.preventDefault(); // Empêche le comportement par défaut
       }
 
       function draw(e) {
@@ -540,6 +658,7 @@
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(clientX - rect.left, clientY - rect.top);
+        e.preventDefault(); // Empêche le comportement par défaut
       }
 
       // Ajouter des écouteurs pour les événements de souris
@@ -553,6 +672,17 @@
       canvas.addEventListener('touchend', endPosition);
       canvas.addEventListener('touchcancel', endPosition);
       canvas.addEventListener('touchmove', draw);
+    }
+
+    // Initialisation
+    setupCanvas('drawingCanvas1');
+    setupCanvas('drawingCanvas2');
+
+    // Bouton pour effacer
+    function clearCanvas(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     // Initialisation
