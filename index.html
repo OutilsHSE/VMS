@@ -327,6 +327,16 @@
       height: 50px;
     }
 
+    .print-description {
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+      border: none;
+      padding: 4px;
+      max-width: 100px;
+    }
+
     @media print {
 
       /* Cache les boutons et éléments non pertinents à l'impression */
@@ -373,6 +383,14 @@
         white-space: pre-wrap;
         word-break: break-word;
         max-width: 100px;
+      }
+
+      textarea.description {
+        display: none;
+      }
+
+      .print-description {
+        display: block;
       }
 
       tr {
@@ -508,6 +526,7 @@
   </div>
 
   <script>
+
     function updateCounters() {
       const rows = document.querySelectorAll('#obs-table tbody tr');
       let cPP = 0, cCD = 0, cAD = 0;
@@ -530,7 +549,7 @@
           <option value="CD">CD ⚠️</option>
           <option value="AD">AD 🚫</option>
         </select></td>
-        <td><textarea type="text" class="description" placeholder="Description"></textarea></td>
+        <td><textarea type="text" id="myTextarea" class="description" placeholder="Description"></textarea> <div class="print-description" id="printDescription"></div></td>
         <td><input type="text" class="can-disable" placeholder="Action à mener"></td>
         <td><input type="text" class="can-disable" placeholder="Responsable"></td>
         <td><input type="date" class="can-disable" ></td>
@@ -540,6 +559,18 @@
       tbody.appendChild(tr);
       applyColor(tr.querySelector('.type-select'));
       updateCounters();
+      // 🔄 Initialise la zone de texte dynamique juste après l'ajout
+      const textarea = tr.querySelector('textarea.description');
+      const printDiv = tr.querySelector('div.print-description');
+
+      function autoResizeAndSync() {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+        printDiv.textContent = textarea.value;
+      }
+
+      textarea.addEventListener('input', autoResizeAndSync);
+      autoResizeAndSync(); // appel initial si valeur présente
     }
     function removeRow(btn) {
       btn.closest('tr').remove();
@@ -696,6 +727,7 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
+
   </script>
 </body>
 
