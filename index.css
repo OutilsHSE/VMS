@@ -1,0 +1,411 @@
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      font-size: 12px;
+    }
+
+    h1 {
+      text-align: left;
+    }
+
+    .top-fields {
+      display: flex;
+      flex-wrap: wrap;
+      /* Permettre aux éléments de passer à la ligne si nécessaire */
+      gap: 20px;
+      /* Espace entre les éléments */
+      margin-bottom: 20px;
+      align-items: baseline;
+    }
+
+    .top-fields label {
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+
+    .top-fields input {
+      margin-left: 10px;
+      /* Espace entre le label et l'input */
+      flex: 1;
+      /* Permettre à l'input de prendre l'espace disponible */
+      width: 200px;
+    }
+
+    /* Style pour les petits écrans */
+    @media (max-width: 600px) {
+      .top-fields {
+        flex-direction: column;
+        /* Disposer les éléments en colonne */
+        align-items: flex-start;
+        /* Aligner les éléments à gauche */
+      }
+
+      .top-fields label {
+        width: 100%;
+        /* Prendre toute la largeur disponible */
+      }
+
+      .top-fields input {
+        width: calc(100% - 10px);
+        /* Ajuster la largeur de l'input pour tenir compte de la marge */
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+
+    th {
+      background: #f0f0f0;
+    }
+
+    select,
+    input[type="text"],
+    input[type="date"] {
+      width: 100%;
+    }
+
+    .PP {
+      background: #e6ffe6;
+    }
+
+    .CD {
+      background: #fff5e6;
+    }
+
+    .AD {
+      background: #ffe6e6;
+    }
+
+    .counters {
+      margin-bottom: 20px;
+    }
+
+    .counters span {
+      margin-right: 15px;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .add-row {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .show-consignes {
+      background: #f44336;
+      color: white;
+    }
+
+    .remove-row {
+      background: #f44336;
+      color: white;
+    }
+
+    .export {
+      background: #2196F3;
+      color: white;
+    }
+
+    .abreviations {
+      color: #f44336;
+      font-size: smaller;
+    }
+
+    .buttons {
+      margin-bottom: 10px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0, 0, 0);
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+      margin: 15% auto;
+      padding: 20px;
+      width: 80%;
+      background-color: #fefefe;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .picto {
+      width: 50px;
+    }
+
+    input::placeholder {
+      font-size: 0.7rem;
+      /* Taille par défaut */
+    }
+
+    /* Conteneur principal utilisant Flexbox */
+    .container {
+      display: flex;
+      align-items: center;
+      /* Aligner les éléments verticalement au centre */
+      justify-content: space-between;
+      /* Espacer les éléments uniformément */
+      /* Ajouter un peu de padding autour du conteneur */
+      margin-bottom: 50px;
+      background-color: rgb(116, 204, 239);
+    }
+
+    /* Styles pour les images */
+    .logo {
+      max-width: 100px;
+      /* Ajuster la taille des images selon vos besoins */
+      height: auto;
+      /* Maintenir les proportions des images */
+    }
+
+    @media (max-width: 600px) {
+      .regles {
+        max-width: 100px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .regles {
+        max-width: 500px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+    }
+
+    /* Style pour le titre */
+    h1 {
+      margin: 0;
+      /* Supprimer la marge par défaut */
+      font-size: 2rem;
+      /* Ajuster la taille du texte selon vos besoins */
+    }
+
+    .regles {
+      width: 100%;
+    }
+
+    .aligned-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .aligned-table th,
+    .aligned-table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      vertical-align: top;
+      width: 50%;
+    }
+
+    .input-bilan {
+      width: 100%;
+      resize: vertical;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+    }
+
+
+    @media (max-width: 600px) {
+
+      .aligned-table th,
+      .aligned-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .aligned-table tr {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .aligned-table th {
+        background-color: #f0f0f0;
+        /* Exemple de couleur de fond pour les en-têtes */
+        font-weight: bold;
+      }
+    }
+
+    .large-row {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+    }
+
+
+    .signature-canvas {
+      flex-grow: 1;
+      border: 1px solid #000;
+    }
+
+    button {
+      margin-left: auto;
+    }
+
+    input[type="text"] {
+      width: 200px;
+      box-sizing: border-box;
+      /* Assure que le padding et la bordure sont inclus dans la largeur */
+    }
+
+    .input-bilan {
+      height: 300px;
+    }
+
+    .print-description {
+      display: none;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: none;
+      padding: 4px;
+      max-width: 100px;
+      height: 250px;
+    }
+
+    @media print {
+
+      * {
+        -webkit-print-color-adjust: exact;
+        /* Chrome, Safari */
+        print-color-adjust: exact;
+        /* Standard */
+      }
+         
+      /* Cache les boutons et éléments non pertinents à l'impression */
+      button,
+      .no-print {
+        display: none !important;
+      }
+
+      /* Supprime les marges inutiles */
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Forcer les canvas à s'afficher correctement */
+      canvas {
+        border: 1px solid #000 !important;
+        display: block;
+        page-break-inside: avoid;
+      }
+
+      /* Évite que les tableaux soient coupés entre deux pages */
+      table {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        table-layout: fixed;
+      }
+
+      /* Fixer les largeurs des colonnes si nécessaire */
+      th,
+      td {
+        width: 50%;
+      }
+
+      textarea.description {
+        width: 100%;
+        height: 250px;
+        overflow: visible;
+        box-sizing: border-box;
+        resize: none;
+        border: none;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-width: 100px;
+      }
+
+      textarea.description {
+        display: none;
+      }
+
+      .print-description {
+        display: block;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      td,
+      th {
+        vertical-align: top;
+      }
+
+      /* Agrandir les zones de texte pour qu'elles ne soient pas tronquées */
+      textarea {
+        border: none;
+        resize: none;
+        overflow: visible;
+      }
+
+
+      canvas.signature-canvas {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #000 !important;
+        display: block;
+        page-break-inside: avoid;
+      }
+
+      .sign {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .input-bilan {
+        height: 200px;
+      }
+
+      .regles {
+        max-width: 200px;
+        /* Ajuster la taille des images selon vos besoins */
+        height: auto;
+        /* Maintenir les proportions des images */
+      }
+
+    }
