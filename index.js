@@ -40,7 +40,7 @@ function addRow() {
         <option>Clôturée</option>
       </select>
     </td>
-    <td><button class="remove-row" onclick="removeRow(this)">✖</button></td>
+    <td><button class="remove-row no-print" onclick="removeRow(this)">✖</button></td>
   `;
   tbody.appendChild(tr);
 
