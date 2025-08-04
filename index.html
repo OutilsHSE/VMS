@@ -40,10 +40,6 @@
     </thead>
     <tbody></tbody>
   </table>
-  <div class="buttons">
-    <button class="add-row no-print" onclick="addRow()">Ajouter une observation</button>
-    <button class="export no-print" onclick="print()">Imprimer / Exporter</button>
-  </div>
   <table class="aligned-table">
     <th>Bilan globale de la VMS</th>
     <th>Commentaires des collaborateurs</th>
@@ -68,18 +64,21 @@
       <td>
         <div class="sign">
           <canvas id="drawingCanvas1" class="signature-canvas"></canvas>
-          <button onclick="clearCanvas('drawingCanvas1')">🧹 Effacer</button>
+          <button class="no-print" onclick="clearCanvas('drawingCanvas1')">🧹 Effacer</button>
         </div>
       </td>
       <td>
         <div class="sign">
           <canvas id="drawingCanvas2" class="signature-canvas"></canvas>
-          <button onclick="clearCanvas('drawingCanvas2')">🧹 Effacer</button>
+          <button class="no-print" onclick="clearCanvas('drawingCanvas2')">🧹 Effacer</button>
         </div>
       </td>
     </tr>
   </table>
-
+  <div class="buttons">
+    <button class="add-row no-print" onclick="addRow()">Ajouter une observation</button>
+    <button class="export no-print" onclick="print()">Imprimer / Exporter</button>
+  </div>
   <!-- Structure de la modale -->
   <div id="imageModal" class="modal">
     <div class="modal-content">
