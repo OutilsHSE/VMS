@@ -135,6 +135,15 @@ function addRow() {
     };
 
     window.onload = function () {
+      localStorage.clear();
+      // Efface tout le sessionStorage
+      sessionStorage.clear();
+      window.addEventListener("load", () => {
+        // Si tu veux aussi vider tous les inputs et textarea
+        document.querySelectorAll("input, textarea").forEach(el => {
+          el.value = "";
+        });
+      });
       addRow();
       document.getElementById('visite-date').valueAsDate = new Date();
     }
