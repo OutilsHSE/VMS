@@ -317,6 +317,36 @@
   resize: vertical;
   box-sizing: border-box;
 }
+/* Conteneur principal */
+.attestation .contenu {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+/* Image à gauche */
+.attestation img {
+    width: 120px;
+    height: auto;
+    flex-shrink: 0;
+}
+
+/* Bloc texte */
+.attestation .texte {
+    text-align: left;
+}
+
+/* Titre exemples */
+.attestation .titre {
+    font-weight: bold;
+}
+
+/* Liste */
+.attestation ul {
+    margin-top: 5px;
+    padding-left: 20px;
+}
+
 
 @media print {
 
