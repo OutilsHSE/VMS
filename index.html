@@ -25,7 +25,13 @@
     <span>CD ⚠️: <span id="count-CD">0</span></span>
     <span>AD 🚫: <span id="count-AD">0</span></span>
     <button class="show-consignes" id="openModalBtn">?</button>
+    <img 
+    src="fho.png"
+    id="openModalFhoBtn"
+    class="btn-image"
+    alt="Ouvrir FHO">
   </div>
+
   <table id="obs-table">
     <thead>
       <tr>
@@ -80,7 +86,31 @@
     <button class="export no-print" onclick="print()">Imprimer / Exporter</button>
   </div>
 
-  <table class="attestation no-print">
+
+
+  <!-- Structure de la modale -->
+  <div id="imageModal" class="modal">
+    <div class="modal-content">
+      <h1> Informations générales</h1>
+      <ul>
+        <li> 3 étapes : Observer/Discuter/Se mettre d’accord </li>
+        <li> Pas de jugements, de réprimandes ou de mesures disciplinaires</li>
+        <li> Se concentrer sur les points positifs et les points à améliorer (3 PP pour 1 AD/CD)</li>
+        <li> Donner la priorité aux actions immédiates</li>
+        <li> Les actions doivent être convenues conjointement entre le visiteur et la personne rencontrée</li>
+        <li> Se concentrer sur les Règles qui Sauvent des vies </li>
+      </ul>
+      <ul class="abreviations">
+        <li>PP : Point Positif</li>
+        <li>AD : Acte Dangereux : téléphoner en conduisant, opération de travail sans EPI </li>
+        <li>CD : Condition dangereuse : une consigne pas à jour, des trous dans le sol, absence de balisage </li>
+      </ul>
+      <span class="close">&times;</span>
+    </div>
+  </div>
+      <div id="imageFhoModal" class="modal-fho">
+    <div class="modal-content-fho">
+      <table class="attestation no-print">
   <tbody>
     <tr>
       <td>
@@ -112,25 +142,7 @@
     </tr>
   </tbody>
 </table>
-
-  <!-- Structure de la modale -->
-  <div id="imageModal" class="modal">
-    <div class="modal-content">
-      <h1> Informations générales</h1>
-      <ul>
-        <li> 3 étapes : Observer/Discuter/Se mettre d’accord </li>
-        <li> Pas de jugements, de réprimandes ou de mesures disciplinaires</li>
-        <li> Se concentrer sur les points positifs et les points à améliorer (3 PP pour 1 AD/CD)</li>
-        <li> Donner la priorité aux actions immédiates</li>
-        <li> Les actions doivent être convenues conjointement entre le visiteur et la personne rencontrée</li>
-        <li> Se concentrer sur les Règles qui Sauvent des vies </li>
-      </ul>
-      <ul class="abreviations">
-        <li>PP : Point Positif</li>
-        <li>AD : Acte Dangereux : téléphoner en conduisant, opération de travail sans EPI </li>
-        <li>CD : Condition dangereuse : une consigne pas à jour, des trous dans le sol, absence de balisage </li>
-      </ul>
-      <span class="close">&times;</span>
+      <span class="close-fho">&times;</span>
     </div>
   </div>
 
