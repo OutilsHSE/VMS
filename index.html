@@ -1077,10 +1077,16 @@
         });
         const data = await resp.json();
         if (data.status !== 'ok') throw new Error(data.message || 'Erreur IA');
-        if (data.domaine) tr.querySelector('.inp-domaine').value = data.domaine;
-        if (data.impact)  tr.querySelector('.inp-impact').value = String(data.impact);
-        tr.querySelector('.inp-transv').value = String(data.transversal);
-        toast('✨ Suggestions IA appliquées ✓', 'success');
+        // La saisie manuelle est PRIORITAIRE : l'IA ne remplit que les champs restés vides
+        let rempli = 0;
+        const dom = tr.querySelector('.inp-domaine');
+        const imp = tr.querySelector('.inp-impact');
+        const tra = tr.querySelector('.inp-transv');
+        if (!dom.value && data.domaine) { dom.value = data.domaine; rempli++; }
+        if (!imp.value && data.impact)  { imp.value = String(data.impact); rempli++; }
+        if (!tra.value && (data.transversal === 0 || data.transversal === 1)) { tra.value = String(data.transversal); rempli++; }
+        if (rempli > 0) toast('✨ ' + rempli + ' champ(s) complété(s) par l\'IA ✓', 'success');
+        else toast('Champs déjà renseignés — l\'IA n\'a rien modifié');
       } catch (e) {
         toast('❌ IA indisponible : ' + e.message, 'error');
       } finally {
