@@ -377,6 +377,18 @@
     }
     .btn-del-obs:hover { background: #FFF1F2; }
 
+    /* Bouton suggestion IA */
+    .btn-ia {
+      margin-top: 5px;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--bleu-pale); border: 1px solid var(--bleu-accent);
+      color: var(--bleu-clair); border-radius: 6px; padding: 3px 9px;
+      font-family: 'Barlow', sans-serif; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-ia:hover { background: var(--bleu-clair); color: white; }
+    .btn-ia:disabled { opacity: 0.6; cursor: default; }
+
     /* ===== BOUTON AJOUTER OBSERVATION ===== */
     .btn-add-obs {
       display: flex; align-items: center; gap: 8px;
@@ -931,6 +943,7 @@
         </td>
         <td class="col-desc">
           <textarea class="inp-desc" placeholder="Description de l'observation..." oninput="autoH(this)">${data.desc||''}</textarea>
+          <button class="btn-ia no-print" onclick="suggererIA(this.closest('tr'))" title="Suggérer Domaine / Impact / Transversal par IA">✨ IA</button>
         </td>
         <td class="col-action">
           <textarea class="can-disable inp-action" placeholder="Action convenue conjointement..." oninput="autoH(this)">${data.action||''}</textarea>
@@ -1042,6 +1055,38 @@
     }
 
     function autoH(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+    // ========================================================
+    // SUGGESTION IA (Domaine / Impact / Transversal via Groq)
+    // ========================================================
+    async function suggererIA(tr) {
+      const type = tr.querySelector('.sel-type').value;
+      if (type === 'PP') { toast('IA disponible pour les CD/AD', 'error'); return; }
+      const desc = tr.querySelector('.inp-desc').value.trim();
+      if (!desc) { toast('Décris d\'abord l\'observation', 'error'); return; }
+      if (!WEBHOOK_URL) { toast('⚙️ Webhook non configuré', 'error'); return; }
+
+      const btn = tr.querySelector('.btn-ia');
+      const label = btn.innerHTML;
+      btn.innerHTML = '⏳'; btn.disabled = true;
+      try {
+        const resp = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          body: JSON.stringify({ mode: 'suggest', description: desc }),
+          redirect: 'follow'
+        });
+        const data = await resp.json();
+        if (data.status !== 'ok') throw new Error(data.message || 'Erreur IA');
+        if (data.domaine) tr.querySelector('.inp-domaine').value = data.domaine;
+        if (data.impact)  tr.querySelector('.inp-impact').value = String(data.impact);
+        tr.querySelector('.inp-transv').value = String(data.transversal);
+        toast('✨ Suggestions IA appliquées ✓', 'success');
+      } catch (e) {
+        toast('❌ IA indisponible : ' + e.message, 'error');
+      } finally {
+        btn.innerHTML = label; btn.disabled = false;
+      }
+    }
 
     // ========================================================
     // PHOTOS CHANTIER
