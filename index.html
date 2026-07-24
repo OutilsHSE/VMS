@@ -203,7 +203,7 @@
     .photo-thumb { position: relative; display: inline-block; }
 
     .photo-thumb img {
-      width: 90px; height: 70px; object-fit: cover;
+      width: 112px; height: 84px; object-fit: cover;
       border-radius: 7px; border: 2px solid var(--gris-bord); cursor: pointer;
     }
 
@@ -342,9 +342,12 @@
     .col-type { width: 90px; }
     .col-desc { min-width: 220px; }
     .col-action { min-width: 200px; }
+    .col-domaine { width: 130px; }
+    .col-impact { width: 120px; }
+    .col-transv { width: 78px; }
     .col-pilote { width: 130px; }
     .col-echeance { width: 120px; }
-    .col-photo { width: 90px; }
+    .col-photo { width: 124px; }
     .col-del { width: 42px; }
 
     .obs-photo-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -358,7 +361,7 @@
 
     .obs-photo-preview { position: relative; display: inline-block; }
     .obs-photo-preview img {
-      width: 70px; height: 50px; object-fit: cover; border-radius: 5px;
+      width: 112px; height: 84px; object-fit: cover; border-radius: 5px;
       border: 1.5px solid var(--gris-bord); cursor: pointer;
     }
     .obs-photo-preview .photo-del-btn {
@@ -495,11 +498,12 @@
 
     /* ===== TOAST ===== */
     .toast {
-      position: fixed; bottom: 80px; left: 50%;
-      transform: translateX(-50%) translateY(20px);
+      position: fixed; top: 18px; left: 50%;
+      transform: translateX(-50%) translateY(-24px);
       background: var(--bleu-marine); color: white; padding: 12px 24px;
       border-radius: 8px; font-size: 0.9rem; font-weight: 600; z-index: 9999;
       opacity: 0; transition: all 0.3s ease; pointer-events: none; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .toast.success { background: #1B7A3A; }
@@ -525,7 +529,7 @@
         border: none; background: transparent; resize: none;
       }
       .sign-pad { break-inside: avoid; }
-      .obs-photo-preview img { width: 110px; height: 82px; }
+      .obs-photo-preview img { width: 165px; height: 124px; }
       .obs-photo-btn { display: none !important; }
       .photo-del-btn { display: none !important; }
       .photo-zone { display: none !important; }
@@ -546,7 +550,7 @@
       .section { padding: 16px 14px; }
       .action-bar { padding: 12px 14px; bottom: 8px; }
       .btn { padding: 9px 14px; font-size: 0.83rem; }
-      .col-photo, .col-num { display: none; }
+      .col-domaine, .col-impact, .col-transv, .col-photo, .col-num { display: none; }
     }
   </style>
 </head>
@@ -691,6 +695,9 @@
               <th class="col-type">Type</th>
               <th class="col-desc">Description</th>
               <th class="col-action">Action convenue</th>
+              <th class="col-domaine">Domaine</th>
+              <th class="col-impact">Impact SSE</th>
+              <th class="col-transv">Transv.</th>
               <th class="col-pilote">Pilote</th>
               <th class="col-echeance">Échéance</th>
               <th class="col-photo">Photo</th>
@@ -820,7 +827,7 @@
     //    les champs reçus dans une ligne de la feuille.
     // 3. Déployez en tant qu'application Web (accès : tout le monde) et
     //    collez l'URL /exec ci-dessous. Ce Sheet sera ensuite branché au PA.
-    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw6Hecu_OWMKGP5sSYkriG4FyLYWwBGi4HFcW2NYTUiI3_aCH7nwSBprG3M2t99Nrj1dA/exec'; // ex : 'https://script.google.com/macros/s/XXXX/exec'
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw6Hecu_OWMKGP5sSYkriG4FyLYWwBGi4HFcW2NYTUiI3_aCH7nwSBprG3M2t99Nrj1dA/exec';
 
     // ========================================================
     // NUMÉROTATION AUTOMATIQUE
@@ -928,6 +935,32 @@
         <td class="col-action">
           <textarea class="can-disable inp-action" placeholder="Action convenue conjointement..." oninput="autoH(this)">${data.action||''}</textarea>
         </td>
+        <td class="col-domaine">
+          <select class="can-disable inp-domaine">
+            <option value="">—</option>
+            <option ${data.domaine==='Sécurité'?'selected':''}>Sécurité</option>
+            <option ${data.domaine==='Santé'?'selected':''}>Santé</option>
+            <option ${data.domaine==='Environnement'?'selected':''}>Environnement</option>
+            <option ${data.domaine==='Réglementaire'?'selected':''}>Réglementaire</option>
+            <option ${data.domaine==='Démarche SSE'?'selected':''}>Démarche SSE</option>
+          </select>
+        </td>
+        <td class="col-impact">
+          <select class="can-disable inp-impact">
+            <option value="">—</option>
+            <option value="4" ${data.impact==='4'?'selected':''}>4 — Majeur</option>
+            <option value="3" ${data.impact==='3'?'selected':''}>3 — Important</option>
+            <option value="2" ${data.impact==='2'?'selected':''}>2 — Modéré</option>
+            <option value="1" ${data.impact==='1'?'selected':''}>1 — Mineur</option>
+          </select>
+        </td>
+        <td class="col-transv">
+          <select class="can-disable inp-transv">
+            <option value="">—</option>
+            <option value="1" ${data.transversal==='1'?'selected':''}>Oui</option>
+            <option value="0" ${data.transversal==='0'?'selected':''}>Non</option>
+          </select>
+        </td>
         <td class="col-pilote">
           <input type="text" class="can-disable inp-pilote" placeholder="Responsable" value="${data.pilote||''}">
         </td>
@@ -956,38 +989,54 @@
       majCompteurs();
     }
 
+    // Compression avant stockage/envoi (photos terrain -> payload raisonnable)
+    function resizeImage(dataURL, maxW, maxH, cb) {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width, maxH / img.height);
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = dataURL;
+    }
+
     function ajouterPhotoObs(input) {
       const file = input.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
-        const cell = input.closest('.obs-photo-cell');
-        const container = cell.querySelector('.photo-preview-container');
-        const btn = cell.querySelector('.obs-photo-btn');
-        container.innerHTML = '';
-        const wrap = document.createElement('div');
-        wrap.className = 'obs-photo-preview';
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        img.title = 'Cliquer pour agrandir';
-        img.onclick = () => {
-          const modal = document.createElement('div');
-          modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
-          const bigImg = document.createElement('img');
-          bigImg.src = e.target.result;
-          bigImg.style.cssText = 'max-width:95%;max-height:95%;border-radius:8px';
-          modal.appendChild(bigImg);
-          modal.onclick = () => modal.remove();
-          document.body.appendChild(modal);
-        };
-        const del = document.createElement('button');
-        del.className = 'photo-del-btn no-print';
-        del.textContent = '✕';
-        del.onclick = (ev) => { ev.stopPropagation(); container.innerHTML = ''; btn.style.display = 'inline-block'; input.value = ''; };
-        wrap.appendChild(img);
-        wrap.appendChild(del);
-        container.appendChild(wrap);
-        btn.style.display = 'none';
+        resizeImage(e.target.result, 1280, 1280, function(src) {
+          const cell = input.closest('.obs-photo-cell');
+          const container = cell.querySelector('.photo-preview-container');
+          const btn = cell.querySelector('.obs-photo-btn');
+          container.innerHTML = '';
+          const wrap = document.createElement('div');
+          wrap.className = 'obs-photo-preview';
+          const img = document.createElement('img');
+          img.src = src;
+          img.title = 'Cliquer pour agrandir';
+          img.onclick = () => {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+            const bigImg = document.createElement('img');
+            bigImg.src = src;
+            bigImg.style.cssText = 'max-width:95%;max-height:95%;border-radius:8px';
+            modal.appendChild(bigImg);
+            modal.onclick = () => modal.remove();
+            document.body.appendChild(modal);
+          };
+          const del = document.createElement('button');
+          del.className = 'photo-del-btn no-print';
+          del.textContent = '✕';
+          del.onclick = (ev) => { ev.stopPropagation(); container.innerHTML = ''; btn.style.display = 'inline-block'; input.value = ''; };
+          wrap.appendChild(img);
+          wrap.appendChild(del);
+          container.appendChild(wrap);
+          btn.style.display = 'none';
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -1040,8 +1089,12 @@
           type: tr.querySelector('.sel-type').value,
           description: tr.querySelector('.inp-desc').value,
           action: tr.querySelector('.inp-action').value,
+          domaine: tr.querySelector('.inp-domaine').value,
+          impact: tr.querySelector('.inp-impact').value,
+          transversal: tr.querySelector('.inp-transv').value,
           pilote: tr.querySelector('.inp-pilote').value,
           echeance: tr.querySelector('.inp-echeance').value,
+          photo: (tr.querySelector('.obs-photo-preview img') || {}).src || '',
         });
       });
       return {
@@ -1071,20 +1124,28 @@
         return;
       }
 
+      // On n'envoie que les actions (CD/AD) — les PP ne partent pas vers le PA
+      const aEnvoyer = data.observations.filter(o => o.type !== 'PP');
+      if (aEnvoyer.length === 0) {
+        toast('Aucune action à envoyer (uniquement des PP)', 'error');
+        return;
+      }
+
       const btn = document.querySelector('.btn-success');
       const label = btn.innerHTML;
       btn.innerHTML = '⏳ Envoi en cours...';
       btn.disabled = true;
 
       let errors = 0, success = 0;
-      for (const obs of data.observations) {
+      for (const obs of aEnvoyer) {
         try {
           const payload = {
             nVMS: data.nVMS, dateVisite: data.date, chantier: data.chantier,
             activite: data.activite, visiteur: data.visiteur, conducteur: data.conducteur,
             collaborateurs: data.collaborateurs, nObs: obs.nObs, type: obs.type,
             description: obs.description, action: obs.action, pilote: obs.pilote,
-            echeance: obs.echeance,
+            domaine: obs.domaine, impact: obs.impact, transversal: obs.transversal,
+            echeance: obs.echeance, photo: obs.photo,
             bilan: data.bilan, commentaires: data.commentaires
           };
           const resp = await fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
@@ -1092,7 +1153,7 @@
         } catch (e) { errors++; console.error('Erreur réseau', e); }
       }
 
-      if (errors === 0) toast('✅ ' + success + ' observation(s) envoyée(s) ✓', 'success');
+      if (errors === 0) toast('✅ ' + success + ' action(s) envoyée(s) ✓', 'success');
       else if (success > 0) toast('⚠️ ' + success + ' envoyées, ' + errors + ' erreur(s)', 'error');
       else toast('❌ Erreur d\'envoi. Vérifiez votre connexion.', 'error');
 
@@ -1105,13 +1166,13 @@
     // ========================================================
     function exportExcel() {
       const data = collecterDonnees();
-      const rows = [['N° VMS','Date','Chantier','Activité','Visiteur','Conducteur','Collaborateurs','N° Obs','Type','Description','Action convenue','Pilote','Échéance']];
+      const rows = [['N° VMS','Date','Chantier','Activité','Visiteur','Conducteur','Collaborateurs','N° Obs','Type','Description','Action convenue','Domaine','Impact SSE','Transversal','Pilote','Échéance']];
       data.observations.forEach(o => {
         rows.push([data.nVMS, data.date, data.chantier, data.activite, data.visiteur, data.conducteur, data.collaborateurs,
-          o.nObs, o.type, o.description, o.action, o.pilote, o.echeance]);
+          o.nObs, o.type, o.description, o.action, o.domaine, o.impact, o.transversal, o.pilote, o.echeance]);
       });
       const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols'] = [14,12,22,18,18,20,20,6,6,45,45,16,12].map(w => ({wch:w}));
+      ws['!cols'] = [14,12,22,18,18,20,20,6,6,45,45,14,10,10,16,12].map(w => ({wch:w}));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'VMS');
       XLSX.writeFile(wb, (data.nVMS || 'VMS') + '_' + (data.chantier || 'export').replace(/[^a-zA-Z0-9]/g,'_') + '.xlsx');
