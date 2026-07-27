@@ -6,7 +6,8 @@
   <title>VMS — Visite Managériale de Sécurité · CDES</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
     :root {
       --bleu-marine: #003A6E;
@@ -525,33 +526,6 @@
     input:disabled, select:disabled, textarea:disabled {
       background: #F0F0F0 !important; color: #AAA !important; cursor: not-allowed;
     }
-
-    /* ===== EXPORT PDF (html2pdf) : on masque comme à l'impression ===== */
-    .exporting .action-bar,
-    .exporting .no-print,
-    .exporting .memo-section,
-    .exporting .photo-zone,
-    .exporting .methode-bar,
-    .exporting .btn-add-obs,
-    .exporting .btn-ia,
-    .exporting .btn-del-obs,
-    .exporting .sign-clear,
-    .exporting .obs-photo-btn,
-    .exporting .photo-del-btn,
-    .exporting .col-del,
-    .exporting .header-logo img,
-    .exporting input[type="file"] { display: none !important; }
-    .exporting { background: #fff !important; }
-    .exporting .section { box-shadow: none; }
-    .exporting .obs-table-wrapper { overflow: visible !important; }
-    .exporting table.obs-table { table-layout: fixed; width: 100%; font-size: 0.66rem; }
-    .exporting .obs-table th, .exporting .obs-table td { padding: 3px 4px; word-break: break-word; vertical-align: top; }
-    .exporting .col-num { width: 3%; } .exporting .col-type { width: 7%; }
-    .exporting .col-desc { width: 25%; } .exporting .col-action { width: 23%; }
-    .exporting .col-domaine { width: 9%; } .exporting .col-impact { width: 9%; }
-    .exporting .col-transv { width: 6%; } .exporting .col-pilote { width: 8%; }
-    .exporting .col-echeance { width: 8%; } .exporting .col-photo { width: 8%; }
-    .exporting .obs-photo-preview img { width: 80px; height: 60px; }
 
     /* ===== IMPRESSION ===== */
     .print-only { display: none; }
@@ -1339,47 +1313,298 @@
       return r;
     }
 
-    // Génère le PDF de la VMS (base64) via html2pdf
-    async function genererPDF() {
-      window.scrollTo(0, 0); // évite un décalage de capture si la page est scrollée
-      document.body.classList.add('exporting');
+    // ========================================================
+    // PDF VECTORIEL (jsPDF + autoTable) — mise en page maîtrisée
+    // ========================================================
+    const PDF_C = {
+      marine: [0, 58, 110], clair: [0, 119, 182], pale: [232, 244, 253],
+      vert: [45, 198, 83], orange: [244, 160, 58], rouge: [230, 57, 70],
+      texte: [26, 43, 60], bord: [208, 218, 232], gris: [245, 247, 250], gris2: [110, 125, 140]
+    };
+    const PDF_LIB = { PP: 'Point positif', CD: 'Condition dangereuse', AD: 'Acte dangereux' };
+
+    function fmtDateFR(iso) {
+      if (!iso) return '';
+      const p = String(iso).split('-');
+      return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+    }
+    function imgFormat(src) { return /^data:image\/png/i.test(src) ? 'PNG' : 'JPEG'; }
+
+    // Signature : renvoie un JPEG aplati sur blanc, ou '' si le pad est vide
+    function signatureImage(canvasId) {
+      const c = document.getElementById(canvasId);
+      if (!c || !c.width || !c.height) return '';
       try {
-        const opt = {
-          margin: 6,
-          image: { type: 'jpeg', quality: 0.92 },
-          html2canvas: {
-            scale: 2, useCORS: true, backgroundColor: '#ffffff',
-            windowWidth: document.documentElement.scrollWidth,
-            // Dans la COPIE utilisée pour le rendu, on remplace les champs par du texte (net dans le PDF)
-            onclone: (doc) => {
-              const remplacer = (el, texte) => {
-                const div = doc.createElement('div');
-                div.textContent = texte || '';
-                div.style.cssText = 'font-size:0.66rem;white-space:pre-wrap;word-break:break-word;padding:2px 3px;min-height:12px;color:#1A2B3C;';
-                if (el.parentNode) el.parentNode.replaceChild(div, el);
-              };
-              doc.querySelectorAll('.field input, .field textarea, .obs-table input, .obs-table textarea, .sign-name').forEach(el => remplacer(el, el.value));
-              doc.querySelectorAll('.field select, .obs-table select').forEach(sel => {
-                const o = sel.options[sel.selectedIndex];
-                remplacer(sel, o ? o.text : '');
-              });
-            }
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-          pagebreak: { mode: ['css', 'legacy'] }
-        };
-        return await html2pdf().set(opt).from(document.body).outputPdf('datauristring');
-      } finally {
-        document.body.classList.remove('exporting');
-      }
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let vide = true;
+        for (let i = 3; i < d.length; i += 4) { if (d[i] !== 0) { vide = false; break; } }
+        if (vide) return '';
+      } catch (e) { return ''; }
+      const out = document.createElement('canvas');
+      out.width = c.width; out.height = c.height;
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(c, 0, 0);
+      return out.toDataURL('image/jpeg', 0.9);
     }
 
-    // Bouton : Enregistrer en PDF (impression native) + envoi caché au Sheet
+    function photosChantier() {
+      return Array.from(document.querySelectorAll('#photos-chantier-preview img')).map(i => i.src);
+    }
+
+    // Construit le document PDF complet et le renvoie (objet jsPDF)
+    function construirePDF(data) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true });
+      const W = doc.internal.pageSize.getWidth();   // 297
+      const H = doc.internal.pageSize.getHeight();  // 210
+      const M = 10;
+      const LARG = W - 2 * M;
+
+      // ---------- Bandeau de titre ----------
+      doc.setFillColor.apply(doc, PDF_C.marine);
+      doc.rect(0, 0, W, 22, 'F');
+      doc.setFillColor.apply(doc, PDF_C.clair);
+      doc.rect(0, 22, W, 1.6, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+      doc.text('VMS', M, 11);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text('Visite Managériale de Sécurité', M, 17.5);
+
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+      doc.text(data.nVMS || '', W - M, 11, { align: 'right' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text((data.chantier || '') + (data.date ? '  ·  ' + fmtDateFR(data.date) : ''), W - M, 17.5, { align: 'right' });
+
+      // ---------- Informations de la visite ----------
+      const info = [
+        ['Date de visite', fmtDateFR(data.date), 'Chantier', data.chantier || ''],
+        ['Activité', data.activite || '', 'Visiteur (manager)', data.visiteur || ''],
+        ['Conducteur / Responsable', data.conducteur || '', 'Collaborateurs rencontrés', data.collaborateurs || '']
+      ];
+      doc.autoTable({
+        startY: 29,
+        margin: { left: M, right: M },
+        body: info,
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2, textColor: PDF_C.texte, lineColor: PDF_C.bord, lineWidth: 0.15, valign: 'middle' },
+        columnStyles: {
+          0: { cellWidth: 46, fillColor: PDF_C.pale, fontStyle: 'bold', textColor: PDF_C.marine },
+          1: { cellWidth: 92 },
+          2: { cellWidth: 46, fillColor: PDF_C.pale, fontStyle: 'bold', textColor: PDF_C.marine },
+          3: { cellWidth: LARG - 184 }
+        }
+      });
+
+      // ---------- Compteurs ----------
+      // on ignore les lignes totalement vides du tableau de saisie
+      const obs = data.observations.filter(o => (o.description || '').trim() || (o.action || '').trim());
+      const nb = t => obs.filter(o => o.type === t).length;
+      let y = doc.lastAutoTable.finalY + 6;
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      const puces = [
+        { l: 'PP  ' + nb('PP'), c: PDF_C.vert },
+        { l: 'CD  ' + nb('CD'), c: PDF_C.orange },
+        { l: 'AD  ' + nb('AD'), c: PDF_C.rouge }
+      ];
+      let x = M;
+      puces.forEach(p => {
+        doc.setFillColor.apply(doc, p.c);
+        doc.roundedRect(x, y - 4.4, 24, 6.6, 1.4, 1.4, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.text(p.l, x + 12, y, { align: 'center' });
+        x += 28;
+      });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.setTextColor.apply(doc, PDF_C.gris2);
+      doc.text('Objectif : 3 points positifs pour 1 AD/CD', x + 2, y);
+
+      // ---------- Tableau des observations ----------
+      const corps = obs.map((o, i) => ([
+        String(i + 1),
+        o.type || '',
+        o.description || '',
+        o.action || '',
+        o.domaine || '',
+        o.impact || '',
+        o.transversal === '1' ? 'Oui' : (o.transversal === '0' ? 'Non' : ''),
+        o.pilote || '',
+        fmtDateFR(o.echeance),
+        ''
+      ]));
+
+      doc.autoTable({
+        startY: y + 4,
+        margin: { left: M, right: M, top: 14, bottom: 14 },
+        head: [['#', 'Type', 'Observation / Constat', 'Action convenue', 'Domaine', 'Impact', 'Transv.', 'Pilote', 'Échéance', 'Photo']],
+        body: corps.length ? corps : [['', '', 'Aucune observation saisie', '', '', '', '', '', '', '']],
+        theme: 'grid',
+        rowPageBreak: 'avoid',
+        styles: { font: 'helvetica', fontSize: 7.6, cellPadding: 1.8, overflow: 'linebreak', valign: 'top', textColor: PDF_C.texte, lineColor: PDF_C.bord, lineWidth: 0.15 },
+        headStyles: { fillColor: PDF_C.marine, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, halign: 'center', valign: 'middle' },
+        alternateRowStyles: { fillColor: [250, 252, 255] },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 16, halign: 'center', valign: 'middle', fontStyle: 'bold' },
+          2: { cellWidth: 66 },
+          3: { cellWidth: 61 },
+          4: { cellWidth: 26 },
+          5: { cellWidth: 14, halign: 'center' },
+          6: { cellWidth: 14, halign: 'center' },
+          7: { cellWidth: 26 },
+          8: { cellWidth: 20, halign: 'center' },
+          9: { cellWidth: 26, halign: 'center' }
+        },
+        didParseCell: d => {
+          if (d.section !== 'body') return;
+          const o = obs[d.row.index];
+          if (d.column.index === 1 && o) {
+            const c = o.type === 'PP' ? PDF_C.vert : (o.type === 'AD' ? PDF_C.rouge : PDF_C.orange);
+            d.cell.styles.fillColor = c;
+            d.cell.styles.textColor = [255, 255, 255];
+          }
+          if (d.column.index === 9 && o && o.photo) d.cell.styles.minCellHeight = 24;
+        },
+        didDrawCell: d => {
+          if (d.section !== 'body' || d.column.index !== 9) return;
+          const o = obs[d.row.index];
+          if (!o || !o.photo) return;
+          try {
+            const p = doc.getImageProperties(o.photo);
+            const maxW = d.cell.width - 3, maxH = d.cell.height - 3;
+            const r = Math.min(maxW / p.width, maxH / p.height);
+            const w = p.width * r, h = p.height * r;
+            doc.addImage(o.photo, imgFormat(o.photo),
+              d.cell.x + (d.cell.width - w) / 2, d.cell.y + (d.cell.height - h) / 2, w, h);
+          } catch (e) { /* photo illisible : on laisse la cellule vide */ }
+        }
+      });
+
+      // ---------- Curseur de mise en page ----------
+      let curY = doc.lastAutoTable.finalY;
+      // réserve un bloc de hauteur "besoin" : saute de page si nécessaire
+      const reserver = (besoin) => {
+        if (curY + 7 + besoin > H - 14) { doc.addPage(); curY = 16; return curY; }
+        curY += 7;
+        return curY;
+      };
+      const titreBloc = (txt) => {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.setTextColor.apply(doc, PDF_C.marine);
+        doc.text(txt, M, curY);
+        curY += 4;
+      };
+
+      // ---------- Bilan ----------
+      doc.autoTable({
+        startY: reserver(30),
+        margin: { left: M, right: M, top: 14, bottom: 14 },
+        head: [['Bilan global de la visite', 'Commentaires des collaborateurs']],
+        body: [[data.bilan || '—', data.commentaires || '—']],
+        theme: 'grid',
+        rowPageBreak: 'avoid',
+        styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 3, overflow: 'linebreak', valign: 'top', textColor: PDF_C.texte, lineColor: PDF_C.bord, lineWidth: 0.15 },
+        headStyles: { fillColor: PDF_C.clair, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5, minCellHeight: 0, cellPadding: 2 },
+        bodyStyles: { minCellHeight: 24 },
+        columnStyles: { 0: { cellWidth: LARG / 2 }, 1: { cellWidth: LARG / 2 } }
+      });
+      curY = doc.lastAutoTable.finalY;
+
+      // ---------- Photos du chantier ----------
+      const photos = data.photosChantier || [];
+      if (photos.length) {
+        const cw = (LARG - 3 * 5) / 4, ch = 44;
+        reserver(ch + 6);
+        titreBloc('Photos du chantier');
+        let py = curY;
+        photos.forEach((src, i) => {
+          const col = i % 4;
+          if (col === 0 && i > 0) py += ch + 5;
+          if (py + ch > H - 14) { doc.addPage(); py = 16; }
+          const cx = M + col * (cw + 5);
+          doc.setDrawColor.apply(doc, PDF_C.bord);
+          doc.setFillColor.apply(doc, PDF_C.gris);
+          doc.roundedRect(cx, py, cw, ch, 1.5, 1.5, 'FD');
+          try {
+            const p = doc.getImageProperties(src);
+            const r = Math.min((cw - 3) / p.width, (ch - 3) / p.height);
+            doc.addImage(src, imgFormat(src), cx + (cw - p.width * r) / 2, py + (ch - p.height * r) / 2, p.width * r, p.height * r);
+          } catch (e) { /* ignore */ }
+        });
+        curY = py + ch;
+      }
+
+      // ---------- Signatures ----------
+      const bh = 42;
+      reserver(bh + 6);
+      titreBloc('Signatures');
+      const sy = curY;
+      const bw = (LARG - 8) / 2;
+      const boites = [
+        { titre: 'Visiteur (manager)', nom: (document.getElementById('sign-name-1') || {}).value || data.visiteur || '', img: signatureImage('drawingCanvas1') },
+        { titre: 'Intervenant(s)', nom: (document.getElementById('sign-name-2') || {}).value || '', img: signatureImage('drawingCanvas2') }
+      ];
+      boites.forEach((b, i) => {
+        const bx = M + i * (bw + 8);
+        doc.setDrawColor.apply(doc, PDF_C.bord);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(bx, sy, bw, bh, 2, 2, 'FD');
+        doc.setFillColor.apply(doc, PDF_C.pale);
+        doc.roundedRect(bx, sy, bw, 8, 2, 2, 'F');
+        doc.rect(bx, sy + 5, bw, 3, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+        doc.setTextColor.apply(doc, PDF_C.marine);
+        doc.text(b.titre, bx + 3, sy + 5.5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+        doc.setTextColor.apply(doc, PDF_C.texte);
+        doc.text(b.nom || '', bx + 3, sy + 13);
+        if (b.img) {
+          try {
+            const p = doc.getImageProperties(b.img);
+            const zw = bw - 8, zh = bh - 20;
+            const r = Math.min(zw / p.width, zh / p.height);
+            doc.addImage(b.img, 'JPEG', bx + (bw - p.width * r) / 2, sy + 16 + (zh - p.height * r) / 2, p.width * r, p.height * r);
+          } catch (e) { /* ignore */ }
+        }
+      });
+
+      // ---------- Pieds de page ----------
+      const total = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        doc.setPage(i);
+        doc.setDrawColor.apply(doc, PDF_C.bord);
+        doc.line(M, H - 10, W - M, H - 10);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+        doc.setTextColor.apply(doc, PDF_C.gris2);
+        doc.text('CDES · VMS ' + (data.nVMS || '') + (data.chantier ? ' — ' + data.chantier : ''), M, H - 6);
+        doc.text('Page ' + i + '/' + total, W - M, H - 6, { align: 'right' });
+      }
+      return doc;
+    }
+
+    function nomFichierPDF(data) {
+      return (data.nVMS || 'VMS') + '_' + (data.chantier || 'export').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
+    }
+
+    // PDF en base64 (pour la pièce jointe du mail)
+    function genererPDF(data) {
+      return construirePDF(data).output('datauristring');
+    }
+
+    // Bouton : Enregistrer en PDF (téléchargement direct) + envoi caché au Sheet
     async function enregistrerPDF() {
       const data = collecterDonnees();
       if (!data.chantier.trim()) { toast('Veuillez renseigner le nom du chantier', 'error'); return; }
+      data.photosChantier = photosChantier();
       await assurerEnvoi(data);
-      window.print();
+      try {
+        construirePDF(data).save(nomFichierPDF(data));
+        toast('🖨️ PDF enregistré ✓', 'success');
+      } catch (e) {
+        toast('❌ Échec de la génération du PDF : ' + e.message, 'error');
+      }
     }
 
     // Bouton : Envoyer la VMS par mail (PDF en pièce jointe) + envoi caché au Sheet
@@ -1393,8 +1618,9 @@
       if (btn) { btn.innerHTML = '⏳ Envoi...'; btn.disabled = true; }
       toast('⏳ Génération du PDF et envoi...');
       try {
+        data.photosChantier = photosChantier();
         await assurerEnvoi(data);                 // données au Sheet (caché)
-        const pdf = await genererPDF();           // PDF base64
+        const pdf = genererPDF(data);             // PDF vectoriel en base64
         const resp = await fetch(WEBHOOK_URL, {
           method: 'POST',
           body: JSON.stringify({
