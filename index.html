@@ -1279,12 +1279,15 @@
     // ========================================================
     // ENVOI SHEET (caché) + MAIL + PDF
     // ========================================================
-    let vmsEnvoyee = false; // évite de réécrire les lignes si on clique Mail PUIS PDF
+    // Un seul envoi par VMS, même si on clique successivement (ou simultanément) Mail ET PDF.
+    // On mémorise la PROMESSE d'envoi : un 2e clic pendant l'envoi attend le 1er au lieu de relancer.
+    let envoiPromise = null;
 
     // Envoi silencieux des actions (CD/AD) vers le Sheet
     async function envoyerAuSheet(data) {
       if (!WEBHOOK_URL) return { ok: false, errors: 1, success: 0 };
-      const aEnvoyer = data.observations.filter(o => o.type !== 'PP');
+      // PP exclus + lignes vides ignorées (les lignes blanches servent à la saisie papier)
+      const aEnvoyer = data.observations.filter(o => o.type !== 'PP' && ((o.description || '').trim() || (o.action || '').trim()));
       if (aEnvoyer.length === 0) return { ok: true, aucune: true, errors: 0, success: 0 };
       let errors = 0, success = 0;
       for (const obs of aEnvoyer) {
@@ -1298,19 +1301,27 @@
             echeance: obs.echeance, photo: obs.photo,
             bilan: data.bilan, commentaires: data.commentaires
           };
-          const resp = await fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-          if (resp.ok) success++; else errors++;
+          // no-cors : la réponse d'Apps Script n'est pas lisible depuis GitHub Pages (elle
+          // redirige vers googleusercontent). On considère l'envoi réussi dès qu'il est parti :
+          // sinon le garde-fou anti-doublon ne s'armait jamais et un 2e clic réécrivait les lignes.
+          await fetch(WEBHOOK_URL, {
+            method: 'POST', mode: 'no-cors', redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          success++;
         } catch (e) { errors++; }
       }
       return { ok: errors === 0, errors, success };
     }
 
-    // "Fonction cachée" : garantit l'envoi au Sheet une seule fois par VMS
-    async function assurerEnvoi(data) {
-      if (vmsEnvoyee) return { ok: true, dejaFait: true };
-      const r = await envoyerAuSheet(data);
-      if (r.ok) vmsEnvoyee = true;
-      return r;
+    // "Fonction cachée" : garantit UN SEUL envoi au Sheet par VMS.
+    // Le 2e bouton réutilise la même promesse (même s'il est cliqué pendant l'envoi).
+    function assurerEnvoi(data) {
+      if (!envoiPromise) {
+        envoiPromise = envoyerAuSheet(data).catch(e => ({ ok: false, errors: 1, success: 0 }));
+      }
+      return envoiPromise;
     }
 
     // ========================================================
@@ -1399,8 +1410,10 @@
       });
 
       // ---------- Compteurs ----------
-      // on ignore les lignes totalement vides du tableau de saisie
-      const obs = data.observations.filter(o => (o.description || '').trim() || (o.action || '').trim());
+      // TOUTES les lignes sont imprimées, y compris les lignes vides ajoutées
+      // volontairement (ex. lignes PP à compléter à la main sur le terrain).
+      const obs = data.observations;
+      const estVide = o => !((o.description || '').trim() || (o.action || '').trim());
       const nb = t => obs.filter(o => o.type === t).length;
       let y = doc.lastAutoTable.finalY + 6;
       doc.setFontSize(9); doc.setFont('helvetica', 'bold');
@@ -1466,6 +1479,8 @@
             d.cell.styles.textColor = [255, 255, 255];
           }
           if (d.column.index === 9 && o && o.photo) d.cell.styles.minCellHeight = 24;
+          // ligne laissée vide → on réserve de la hauteur pour l'écriture manuscrite
+          if (o && estVide(o)) d.cell.styles.minCellHeight = 14;
         },
         didDrawCell: d => {
           if (d.section !== 'body' || d.column.index !== 9) return;
@@ -1663,7 +1678,7 @@
     // ========================================================
     function nouvelleVMS() {
       if (!confirm('Créer une nouvelle VMS ? Les données non envoyées seront perdues.')) return;
-      vmsEnvoyee = false;
+      envoiPromise = null;
       document.getElementById('vms-numero').textContent = genererNumeroVMS();
       document.getElementById('date-visite').valueAsDate = new Date();
       ['chantier','activite','visiteur','conducteur','collaborateurs','bilan-global','commentaires','sign-name-1','sign-name-2']
