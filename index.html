@@ -721,6 +721,7 @@
         <div class="compteur CD">CD ⚠️ <span class="count" id="count-CD">0</span></div>
         <div class="compteur AD">AD 🚫 <span class="count" id="count-AD">0</span></div>
         <span class="ratio-badge" id="ratio-badge">Objectif : 3 PP pour 1 AD/CD</span>
+        <button class="btn-aide no-print" onclick="openModal('modal-import')" style="background:#1B7A3A;">📥 Importer des remontées</button>
         <span class="spacer"></span>
         <button class="btn-aide ghost no-print" onclick="openModal('modal-fho')">🧠 FHO</button>
         <button class="btn-aide no-print" onclick="openModal('modal-aide')">? Règles & aide</button>
@@ -851,6 +852,26 @@
           </ul>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODALE IMPORT DES REMONTÉES -->
+  <div class="modal-overlay" id="modal-import">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
+      <h2>Importer des remontées</h2>
+      <p style="font-size:0.88rem;color:#556;line-height:1.5;margin-bottom:12px;">
+        Colle ci-dessous les lignes copiées depuis le Google Sheet (une observation par ligne, colonnes séparées par des tabulations).
+        Le <strong>Chantier</strong> et la <strong>Date</strong> sont repris automatiquement. Les remontées deviennent des lignes CD/AD pré-remplies ;
+        des lignes <strong>PP vierges</strong> sont ajoutées pour saisie manuelle.
+      </p>
+      <textarea id="import-text" placeholder="Colle les lignes ici..."
+        style="width:100%;min-height:160px;border:1.5px solid var(--gris-bord);border-radius:7px;padding:9px;font-family:monospace;font-size:0.8rem;"></textarea>
+      <div class="field" style="max-width:280px;margin-top:12px;">
+        <label>Lignes PP vierges à ajouter</label>
+        <input type="number" id="import-pp" value="3" min="0" max="30">
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="importerRemontees()">Importer</button>
     </div>
   </div>
 
@@ -1082,6 +1103,85 @@
     }
 
     function autoH(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+    // ========================================================
+    // IMPORT DE REMONTÉES (depuis le Sheet, format PA)
+    // ========================================================
+    // Parseur TSV gérant les cellules entre guillemets (avec sauts de ligne / tabulations)
+    function parseTSV(text) {
+      const rows = [];
+      let row = [], field = '', inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQuotes = false; }
+          else field += c;
+        } else {
+          if (c === '"') inQuotes = true;
+          else if (c === '\t') { row.push(field); field = ''; }
+          else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+          else if (c !== '\r') field += c;
+        }
+      }
+      if (field !== '' || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function frDate(s) { // "29/07/2026" -> "2026-07-29"
+      const m = (s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : '';
+    }
+
+    function typeDepuisSujet(s) {
+      const t = (s || '').toLowerCase();
+      if (t.includes('acte dangereux')) return 'AD';
+      if (t.includes('condition dangereuse')) return 'CD';
+      if (t.includes('point positif')) return 'PP';
+      return 'CD';
+    }
+
+    function importerRemontees() {
+      const text = document.getElementById('import-text').value;
+      const nbPP = parseInt(document.getElementById('import-pp').value || '0', 10) || 0;
+      const rows = parseTSV(text).filter(r =>
+        r.length > 6 && (r[6] || '').trim() && (r[0] || '').trim().toLowerCase() !== 'origine');
+      if (rows.length === 0) { toast('Aucune ligne détectée', 'error'); return; }
+
+      // Chantier + date depuis la 1re ligne (si non déjà remplis)
+      const first = rows[0];
+      const chp = document.getElementById('chantier');
+      if (!chp.value.trim() && first[1]) chp.value = first[1].trim();
+      const d = frDate(first[2]);
+      if (d) document.getElementById('date-visite').value = d;
+
+      // On retire les lignes existantes vides (ex. la ligne PP par défaut)
+      document.querySelectorAll('#obs-tbody tr').forEach(tr => {
+        if (!tr.querySelector('.inp-desc').value.trim() && !tr.querySelector('.inp-action').value.trim()) tr.remove();
+      });
+
+      // Lignes PP vierges (à compléter à la main)
+      for (let i = 0; i < nbPP; i++) ajouterObs({ type: 'PP' });
+
+      // Remontées CD/AD pré-remplies
+      rows.forEach(r => {
+        ajouterObs({
+          type: typeDepuisSujet(r[5]),
+          desc: (r[6] || '').trim(),
+          action: (r[7] || '').trim(),
+          domaine: (r[4] || '').trim(),
+          impact: (r[8] || '').trim(),
+          transversal: (r[9] || '').trim(),
+          pilote: (r[12] || '').trim(),
+          echeance: frDate(r[13])
+        });
+      });
+
+      document.querySelectorAll('#obs-tbody textarea').forEach(autoH);
+      majCompteurs();
+      closeModal('modal-import');
+      document.getElementById('import-text').value = '';
+      toast('✅ ' + rows.length + ' remontée(s) importée(s) + ' + nbPP + ' PP vierge(s)', 'success');
+    }
 
     // ========================================================
     // SUGGESTION IA (Domaine / Impact / Transversal via Groq)
