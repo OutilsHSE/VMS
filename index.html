@@ -6,6 +6,7 @@
   <title>VMS — Visite Managériale de Sécurité · CDES</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --bleu-marine: #003A6E;
@@ -525,6 +526,33 @@
       background: #F0F0F0 !important; color: #AAA !important; cursor: not-allowed;
     }
 
+    /* ===== EXPORT PDF (html2pdf) : on masque comme à l'impression ===== */
+    .exporting .action-bar,
+    .exporting .no-print,
+    .exporting .memo-section,
+    .exporting .photo-zone,
+    .exporting .methode-bar,
+    .exporting .btn-add-obs,
+    .exporting .btn-ia,
+    .exporting .btn-del-obs,
+    .exporting .sign-clear,
+    .exporting .obs-photo-btn,
+    .exporting .photo-del-btn,
+    .exporting .col-del,
+    .exporting .header-logo img,
+    .exporting input[type="file"] { display: none !important; }
+    .exporting { background: #fff !important; }
+    .exporting .section { box-shadow: none; }
+    .exporting .obs-table-wrapper { overflow: visible !important; }
+    .exporting table.obs-table { table-layout: fixed; width: 100%; font-size: 0.66rem; }
+    .exporting .obs-table th, .exporting .obs-table td { padding: 3px 4px; word-break: break-word; vertical-align: top; }
+    .exporting .col-num { width: 3%; } .exporting .col-type { width: 7%; }
+    .exporting .col-desc { width: 25%; } .exporting .col-action { width: 23%; }
+    .exporting .col-domaine { width: 9%; } .exporting .col-impact { width: 9%; }
+    .exporting .col-transv { width: 6%; } .exporting .col-pilote { width: 8%; }
+    .exporting .col-echeance { width: 8%; } .exporting .col-photo { width: 8%; }
+    .exporting .obs-photo-preview img { width: 80px; height: 60px; }
+
     /* ===== IMPRESSION ===== */
     .print-only { display: none; }
 
@@ -763,9 +791,8 @@
 
     <!-- BARRE D'ACTIONS -->
     <div class="action-bar no-print">
-      <button class="btn btn-success" onclick="envoyerDonnees()">☁️ Envoyer les actions</button>
-      <button class="btn btn-warning" onclick="exportExcel()">📊 Exporter Excel</button>
-      <button class="btn btn-primary" onclick="window.print()">🖨️ Exporter PDF</button>
+      <button class="btn btn-success btn-mail" onclick="envoyerParMail()">📧 Envoyer la VMS par mail</button>
+      <button class="btn btn-primary" onclick="enregistrerPDF()">🖨️ Enregistrer en PDF</button>
       <button class="btn btn-secondary" onclick="nouvelleVMS()">📝 Nouvelle VMS</button>
     </div>
 
@@ -1176,30 +1203,15 @@
     }
 
     // ========================================================
-    // ENVOI VERS GOOGLE SHEET (actions → plan d'action)
+    // ENVOI SHEET (caché) + MAIL + PDF
     // ========================================================
-    async function envoyerDonnees() {
-      const data = collecterDonnees();
+    let vmsEnvoyee = false; // évite de réécrire les lignes si on clique Mail PUIS PDF
 
-      if (!data.chantier.trim()) { toast('Veuillez renseigner le nom du chantier', 'error'); return; }
-      if (data.observations.length === 0) { toast('Ajoutez au moins une observation', 'error'); return; }
-      if (!WEBHOOK_URL) {
-        toast('⚙️ Webhook non configuré (voir WEBHOOK_URL dans le code)', 'error');
-        return;
-      }
-
-      // On n'envoie que les actions (CD/AD) — les PP ne partent pas vers le PA
+    // Envoi silencieux des actions (CD/AD) vers le Sheet
+    async function envoyerAuSheet(data) {
+      if (!WEBHOOK_URL) return { ok: false, errors: 1, success: 0 };
       const aEnvoyer = data.observations.filter(o => o.type !== 'PP');
-      if (aEnvoyer.length === 0) {
-        toast('Aucune action à envoyer (uniquement des PP)', 'error');
-        return;
-      }
-
-      const btn = document.querySelector('.btn-success');
-      const label = btn.innerHTML;
-      btn.innerHTML = '⏳ Envoi en cours...';
-      btn.disabled = true;
-
+      if (aEnvoyer.length === 0) return { ok: true, aucune: true, errors: 0, success: 0 };
       let errors = 0, success = 0;
       for (const obs of aEnvoyer) {
         try {
@@ -1213,16 +1225,94 @@
             bilan: data.bilan, commentaires: data.commentaires
           };
           const resp = await fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-          if (resp.ok) success++; else { errors++; console.error('Erreur obs', obs.nObs, resp.status); }
-        } catch (e) { errors++; console.error('Erreur réseau', e); }
+          if (resp.ok) success++; else errors++;
+        } catch (e) { errors++; }
       }
+      return { ok: errors === 0, errors, success };
+    }
 
-      if (errors === 0) toast('✅ ' + success + ' action(s) envoyée(s) ✓', 'success');
-      else if (success > 0) toast('⚠️ ' + success + ' envoyées, ' + errors + ' erreur(s)', 'error');
-      else toast('❌ Erreur d\'envoi. Vérifiez votre connexion.', 'error');
+    // "Fonction cachée" : garantit l'envoi au Sheet une seule fois par VMS
+    async function assurerEnvoi(data) {
+      if (vmsEnvoyee) return { ok: true, dejaFait: true };
+      const r = await envoyerAuSheet(data);
+      if (r.ok) vmsEnvoyee = true;
+      return r;
+    }
 
-      btn.innerHTML = label;
-      btn.disabled = false;
+    // Génère le PDF de la VMS (base64) via html2pdf
+    async function genererPDF() {
+      window.scrollTo(0, 0); // évite un décalage de capture si la page est scrollée
+      document.body.classList.add('exporting');
+      try {
+        const opt = {
+          margin: 6,
+          image: { type: 'jpeg', quality: 0.92 },
+          html2canvas: {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff',
+            windowWidth: document.documentElement.scrollWidth,
+            // Dans la COPIE utilisée pour le rendu, on remplace les champs par du texte (net dans le PDF)
+            onclone: (doc) => {
+              const remplacer = (el, texte) => {
+                const div = doc.createElement('div');
+                div.textContent = texte || '';
+                div.style.cssText = 'font-size:0.66rem;white-space:pre-wrap;word-break:break-word;padding:2px 3px;min-height:12px;color:#1A2B3C;';
+                if (el.parentNode) el.parentNode.replaceChild(div, el);
+              };
+              doc.querySelectorAll('.field input, .field textarea, .obs-table input, .obs-table textarea, .sign-name').forEach(el => remplacer(el, el.value));
+              doc.querySelectorAll('.field select, .obs-table select').forEach(sel => {
+                const o = sel.options[sel.selectedIndex];
+                remplacer(sel, o ? o.text : '');
+              });
+            }
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+          pagebreak: { mode: ['css', 'legacy'] }
+        };
+        return await html2pdf().set(opt).from(document.body).outputPdf('datauristring');
+      } finally {
+        document.body.classList.remove('exporting');
+      }
+    }
+
+    // Bouton : Enregistrer en PDF (impression native) + envoi caché au Sheet
+    async function enregistrerPDF() {
+      const data = collecterDonnees();
+      if (!data.chantier.trim()) { toast('Veuillez renseigner le nom du chantier', 'error'); return; }
+      await assurerEnvoi(data);
+      window.print();
+    }
+
+    // Bouton : Envoyer la VMS par mail (PDF en pièce jointe) + envoi caché au Sheet
+    async function envoyerParMail() {
+      const data = collecterDonnees();
+      if (!data.chantier.trim()) { toast('Veuillez renseigner le nom du chantier', 'error'); return; }
+      if (!WEBHOOK_URL) { toast('⚙️ Webhook non configuré', 'error'); return; }
+
+      const btn = document.querySelector('.btn-mail');
+      const label = btn ? btn.innerHTML : '';
+      if (btn) { btn.innerHTML = '⏳ Envoi...'; btn.disabled = true; }
+      toast('⏳ Génération du PDF et envoi...');
+      try {
+        await assurerEnvoi(data);                 // données au Sheet (caché)
+        const pdf = await genererPDF();           // PDF base64
+        const resp = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            mode: 'email', pdf,
+            nVMS: data.nVMS, chantier: data.chantier, dateVisite: data.date, visiteur: data.visiteur
+          }),
+          redirect: 'follow'
+        });
+        let serverErr = null;
+        try { const j = await resp.json(); if (j.status !== 'ok') serverErr = j.message || 'Erreur serveur'; }
+        catch (_) { /* lecture CORS impossible : l'envoi côté serveur a tout de même eu lieu */ }
+        if (serverErr) throw new Error(serverErr);
+        toast('📧 VMS envoyée à j.hervelin@cdes.eu ✓', 'success');
+      } catch (e) {
+        toast('❌ Échec de l\'envoi du mail : ' + e.message, 'error');
+      } finally {
+        if (btn) { btn.innerHTML = label; btn.disabled = false; }
+      }
     }
 
     // ========================================================
@@ -1247,6 +1337,7 @@
     // ========================================================
     function nouvelleVMS() {
       if (!confirm('Créer une nouvelle VMS ? Les données non envoyées seront perdues.')) return;
+      vmsEnvoyee = false;
       document.getElementById('vms-numero').textContent = genererNumeroVMS();
       document.getElementById('date-visite').valueAsDate = new Date();
       ['chantier','activite','visiteur','conducteur','collaborateurs','bilan-global','commentaires','sign-name-1','sign-name-2']
