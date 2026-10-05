@@ -1,0 +1,73 @@
+{
+  "activites": [
+    "Dragage",
+    "RCE",
+    "Arrachage",
+    "Restauration de berges",
+    "Faucardage",
+    "Fret Fluvial",
+    "Atelier",
+    "Bathymétrie / Topo",
+    "Equipements Portuaires",
+    "Dragage TEREOS"
+  ],
+  "memo": [
+    {
+      "cls": "humain",
+      "ico": "👤",
+      "title": "Humain",
+      "items": [
+        "Port des EPI adaptés (casque, chaussures, gants, lunettes, protection auditive, HV)",
+        "Gilet de sauvetage porté à proximité de l'eau",
+        "Vigilance et attention — pas de téléphone en manœuvre",
+        "Respect des consignes et des modes opératoires",
+        "Gestes et postures / manutention adaptés (TMS)",
+        "État de forme, fatigue",
+        "Jamais seul en zone à risque"
+      ]
+    },
+    {
+      "cls": "materiel",
+      "ico": "🔧",
+      "title": "Matériel",
+      "items": [
+        "Balisage des zones à risques et des zones de chargement",
+        "État des engins et dispositifs de sécurité",
+        "Accessoires de levage contrôlés",
+        "Équipements de protection collective : barque, bouées",
+        "Équipements d'accès en sécurité : échelle, passerelle de chantier",
+        "Extincteurs accessibles et trousse de secours présente",
+        "Outillage adapté et en bon état"
+      ]
+    },
+    {
+      "cls": "orga",
+      "ico": "📋",
+      "title": "Organisationnel",
+      "items": [
+        "Plan de prévention ou PPSPS",
+        "Réalisation de la Vigiminute",
+        "Accueil sécurité des nouveaux arrivants",
+        "Causerie / ¼ d'heure sécurité réalisé",
+        "CACES, habilitations et autorisations à jour",
+        "Coactivité maîtrisée (engins / piétons / navigation)",
+        "Procédure en cas d'accident connue",
+        "Infrastructures de chantier : base vie + affichage obligatoire"
+      ]
+    },
+    {
+      "cls": "env",
+      "ico": "🌿",
+      "title": "Environnemental",
+      "items": [
+        "Stockage des hydrocarbures sur rétention",
+        "Kit anti-pollution disponible et localisé",
+        "Tri et évacuation des déchets",
+        "Ordre et propreté, accès dégagés",
+        "Zones de ravitaillement / entretien propres",
+        "Bruit et nuisances maîtrisés",
+        "Météo, batillage et niveau d'eau pris en compte"
+      ]
+    }
+  ]
+}

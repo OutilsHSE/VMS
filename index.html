@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VMS — Visite Managériale de Sécurité · CDES</title>
+  <meta name="theme-color" content="#003A6E">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="css/vms.css">
+</head>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-logo">
+        <img src="https://cdes.pro/wp-content/uploads/2019/12/logo-alt-1.svg" alt="CDES"
+             onerror="this.onerror=null;this.src='CDES_Logo.png';this.style.filter='none';">
+        <div class="header-title">
+          <h1>VMS</h1>
+          <p>Visite Managériale de Sécurité</p>
+        </div>
+      </div>
+      <div class="header-cr">
+        <div class="cr-label">N° VMS</div>
+        <div class="cr-value" id="vms-numero">—</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <div id="etat-branchement" class="no-print"></div>
+
+    <!-- SECTION 1 : INFORMATIONS DE LA VISITE -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span>Informations de la visite</div>
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Date de visite *</label>
+          <input type="date" id="date-visite">
+        </div>
+        <div class="field">
+          <label>Chantier *</label>
+          <input type="text" id="chantier" placeholder="Nom du chantier">
+        </div>
+        <div class="field">
+          <label>Agence</label>
+          <select id="agence">
+            <option value="">— Sélectionner —</option>
+            <option value="IDF">IDF — Île-de-France</option>
+            <option value="NA">NA — Nouvelle-Aquitaine</option>
+            <option value="BPL">BPL — Bretagne / Pays de la Loire</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Activité</label>
+          <select id="activite">
+            <option value="">— Sélectionner —</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Visiteur (manager)</label>
+          <input type="text" id="visiteur" placeholder="Nom / Fonction">
+        </div>
+        <div class="field">
+          <label>Conducteur de travaux / Responsable</label>
+          <input type="text" id="conducteur" list="dl-responsables" placeholder="Nom du responsable" autocomplete="off">
+          <datalist id="dl-responsables"></datalist>
+        </div>
+        <div class="field">
+          <label>Collaborateurs rencontrés</label>
+          <input type="text" id="collaborateurs" placeholder="Noms des collaborateurs">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2 : PHOTOS DU CHANTIER -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span>Photos du chantier</div>
+      <label class="photo-zone" for="photos-chantier-input">
+        <div class="icon">📷</div>
+        <p>Cliquez ou glissez des photos du chantier ici</p>
+        <input type="file" id="photos-chantier-input" accept="image/*" multiple style="display:none">
+      </label>
+      <div class="photos-preview" id="photos-chantier-preview"></div>
+    </div>
+
+    <!-- SECTION MÉMO : CARTOGRAPHIE FHO -->
+    <div class="section memo-section" id="memo-section">
+      <div class="section-title memo-toggle" onclick="document.getElementById('memo-section').classList.toggle('collapsed')">
+        <span class="dot"></span>Mémo — que vérifier ?
+        <span class="memo-hint">cartographie FHO · cliquez un point pour l'ajouter</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="memo-body">
+        <p class="memo-intro">Repères pour observer une situation de travail selon les 4 Facteurs Humains &amp; Organisationnels. Un clic sur un point crée une observation pré-remplie, que vous qualifiez ensuite (PP / CD / AD).</p>
+        <div class="memo-grid" id="memo-grid"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 3 : OBSERVATIONS -->
+    <div class="section">
+      <div class="section-title">
+        <span class="dot"></span>Observations de la visite
+        <span class="spacer"></span>
+      </div>
+
+      <!-- RAPPEL MÉTHODE -->
+      <div class="methode-bar">
+        <div class="methode-step"><span class="num">1</span><span class="txt">Observer<small>Regarder la situation de travail</small></span></div>
+        <div class="methode-step"><span class="num">2</span><span class="txt">Discuter<small>Échanger sans juger</small></span></div>
+        <div class="methode-step"><span class="num">3</span><span class="txt">Se mettre d'accord<small>Convenir d'une action</small></span></div>
+      </div>
+
+      <!-- COMPTEURS -->
+      <div class="compteurs">
+        <div class="compteur PP">PP 👍 <span class="count" id="count-PP">0</span></div>
+        <div class="compteur CD">CD ⚠️ <span class="count" id="count-CD">0</span></div>
+        <div class="compteur AD">AD 🚫 <span class="count" id="count-AD">0</span></div>
+        <span class="ratio-badge" id="ratio-badge">Objectif : 3 PP pour 1 AD/CD</span>
+        <button class="btn-aide no-print" onclick="openModal('modal-import')" style="background:#1B7A3A;">📥 Importer des remontées</button>
+        <span class="spacer"></span>
+        <button class="btn-aide ghost no-print" onclick="openModal('modal-fho')">🧠 FHO</button>
+        <button class="btn-aide no-print" onclick="openModal('modal-aide')">? Règles & aide</button>
+      </div>
+
+      <!-- TABLEAU -->
+      <div class="obs-table-wrapper">
+        <table class="obs-table" id="obs-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th class="col-type">Type</th>
+              <th class="col-desc">Description</th>
+              <th class="col-action">Action convenue</th>
+              <th class="col-domaine">Domaine</th>
+              <th class="col-impact">Impact SSE</th>
+              <th class="col-transv">Transv.</th>
+              <th class="col-pilote">Pilote</th>
+              <th class="col-echeance">Échéance</th>
+              <th class="col-photo">Photo</th>
+              <th class="col-del no-print"></th>
+            </tr>
+          </thead>
+          <tbody id="obs-tbody"></tbody>
+        </table>
+      </div>
+
+      <button class="btn-add-obs no-print" onclick="ajouterObs()">＋ Ajouter une observation</button>
+    </div>
+
+    <!-- SECTION 4 : BILAN -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span>Bilan de la visite</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Bilan global de la VMS</label>
+          <textarea id="bilan-global" placeholder="Synthèse de la visite, points marquants, ambiance sécurité..."></textarea>
+        </div>
+        <div class="field">
+          <label>Commentaires des collaborateurs</label>
+          <textarea id="commentaires" placeholder="Ressenti, remontées et suggestions des équipes rencontrées..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5 : SIGNATURES -->
+    <div class="section">
+      <div class="section-title"><span class="dot"></span>Signatures</div>
+      <div class="sign-grid">
+        <div class="sign-box">
+          <span class="sign-label">Signature visiteur (manager)</span>
+          <input type="text" class="sign-name" id="sign-name-1" placeholder="Nom du visiteur">
+          <div class="sign-pad">
+            <canvas id="drawingCanvas1" class="signature-canvas"></canvas>
+            <button class="sign-clear no-print" onclick="clearCanvas('drawingCanvas1')">🧹 Effacer</button>
+          </div>
+        </div>
+        <div class="sign-box">
+          <span class="sign-label">Signature intervenant(s)</span>
+          <input type="text" class="sign-name" id="sign-name-2" placeholder="Nom de l'intervenant">
+          <div class="sign-pad">
+            <canvas id="drawingCanvas2" class="signature-canvas"></canvas>
+            <button class="sign-clear no-print" onclick="clearCanvas('drawingCanvas2')">🧹 Effacer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRE D'ACTIONS -->
+    <div class="action-bar no-print">
+      <button class="btn btn-success btn-mail" onclick="envoyerParMail()">📧 Envoyer la VMS par mail</button>
+      <button class="btn btn-primary" onclick="enregistrerPDF()">🖨️ Enregistrer en PDF</button>
+      <button class="btn btn-secondary" onclick="nouvelleVMS()">📝 Nouvelle VMS</button>
+    </div>
+
+  </main>
+
+  <!-- MODALE AIDE / RÈGLES -->
+  <div class="modal-overlay" id="modal-aide">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modal-aide')">✕</button>
+      <h2>Réussir sa VMS</h2>
+      <ul class="modal-list">
+        <li>3 étapes : Observer → Discuter → Se mettre d'accord</li>
+        <li>Pas de jugement, de réprimande ni de mesure disciplinaire</li>
+        <li>Se concentrer sur les points positifs et à améliorer (3 PP pour 1 AD/CD)</li>
+        <li>Donner la priorité aux actions immédiates</li>
+        <li>Les actions sont convenues conjointement entre le visiteur et la personne rencontrée</li>
+        <li>Se concentrer sur les Règles qui Sauvent des vies</li>
+      </ul>
+
+      <h3>Signification des types</h3>
+      <div class="type-legend">
+        <div class="type-legend-item PP">
+          <span class="type-badge type-PP">PP</span>
+          <p><strong>Point Positif</strong><br>Bonne pratique observée, comportement exemplaire, respect des consignes.</p>
+        </div>
+        <div class="type-legend-item CD">
+          <span class="type-badge type-CD">CD</span>
+          <p><strong>Condition Dangereuse</strong><br>Une consigne pas à jour, des trous dans le sol, une absence de balisage.</p>
+        </div>
+        <div class="type-legend-item AD">
+          <span class="type-badge type-AD">AD</span>
+          <p><strong>Acte Dangereux</strong><br>Téléphoner en conduisant, une opération de travail sans EPI.</p>
+        </div>
+      </div>
+
+      <h3>Les Règles qui Sauvent des vies</h3>
+      <img class="regles-img" src="regles.png" alt="Règles qui sauvent des vies">
+    </div>
+  </div>
+
+  <!-- MODALE FHO -->
+  <div class="modal-overlay" id="modal-fho">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modal-fho')">✕</button>
+      <h2>Facteurs Humains et Organisationnels</h2>
+      <div class="fho-content">
+        <img src="fho.png" alt="FHO">
+        <div class="fho-txt">
+          <p>Pour réaliser une observation HSE pertinente, les situations de travail doivent être analysées selon les Facteurs Humains et Organisationnels (FHO).</p>
+          <h3 style="margin-top:6px;">Exemples</h3>
+          <ul class="modal-list">
+            <li><strong>Humain :</strong> port des EPI, vigilance, respect des consignes</li>
+            <li><strong>Matériel :</strong> extincteur manquant, matériel défectueux</li>
+            <li><strong>Organisationnel :</strong> coactivité, préparation, communication</li>
+            <li><strong>Environnemental :</strong> pollution, stockage, propreté chantier</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE IMPORT DES REMONTÉES -->
+  <div class="modal-overlay" id="modal-import">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('modal-import')">✕</button>
+      <h2>Importer des remontées</h2>
+      <p style="font-size:0.88rem;color:#556;line-height:1.5;margin-bottom:12px;">
+        Colle ci-dessous les lignes copiées depuis le Google Sheet (une observation par ligne, colonnes séparées par des tabulations).
+        Le <strong>Chantier</strong> et la <strong>Date</strong> sont repris automatiquement. Les remontées deviennent des lignes CD/AD pré-remplies ;
+        des lignes <strong>PP vierges</strong> sont ajoutées pour saisie manuelle.
+      </p>
+      <textarea id="import-text" placeholder="Colle les lignes ici..."
+        style="width:100%;min-height:160px;border:1.5px solid var(--gris-bord);border-radius:7px;padding:9px;font-family:monospace;font-size:0.8rem;"></textarea>
+      <div class="field" style="max-width:280px;margin-top:12px;">
+        <label>Lignes PP vierges à ajouter</label>
+        <input type="number" id="import-pp" value="3" min="0" max="30">
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="importerRemontees()">Importer</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/vms.js"></script>
+</body>
+</html>
