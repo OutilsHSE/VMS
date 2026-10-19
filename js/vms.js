@@ -1,4 +1,7 @@
-/* VMS — Visite Managériale de Sécurité · CDES — page V2 (05/10/2026)
+/* VMS — Visite Managériale de Sécurité · CDES — page V2.1 (19/10/2026)
+   V2.1 : le visiteur se choisit dans la liste des personnes suivies en VMS (servie par le serveur,
+   depuis le Reporting HSE) ; chaque VMS est enregistrée au serveur dès son envoi (mail ou PDF),
+   même sans observation, pour le suivi « VMS par personne » du Reporting.
    Découpée : index.html · css/vms.css · js/vms.js · data/listes.json.
    Ni adresse de serveur, ni mot de passe, ni nom de personne dans ce dépôt public :
    l'appareil est « branché » par le lien distribué par l'intranet HSE. */
@@ -8,7 +11,7 @@
 // Aucune adresse ni mot de passe dans ce fichier public. L'appareil est « branché »
 // une fois, en ouvrant la VMS depuis la tuile de l'intranet HSE (lien …#config=…) :
 // l'adresse du serveur et le mot de passe sont alors gardés sur CET appareil.
-const CLE_CONF = 'vms_conf_v2', CLE_LISTES = 'vms_listes_v2', CLE_RESP = 'vms_responsables_v2';
+const CLE_CONF = 'vms_conf_v2', CLE_LISTES = 'vms_listes_v2', CLE_RESP = 'vms_responsables_v2', CLE_VIS = 'vms_visiteurs_v1';
 function lireConf() { try { return JSON.parse(localStorage.getItem(CLE_CONF) || '{}'); } catch (e) { return {}; } }
 function ecrireConf(c) { try { localStorage.setItem(CLE_CONF, JSON.stringify(c)); } catch (e) {} }
 let CONF = lireConf();
@@ -85,6 +88,36 @@ function afficherResponsables() {
   try { l = JSON.parse(localStorage.getItem(CLE_RESP) || '[]'); } catch (e) {}
   document.getElementById('dl-responsables').innerHTML = l.map(n => '<option value="' + echapper(n) + '">').join('');
 }
+/* V2.1 — Visiteurs : les personnes qui doivent faire des VMS (liste tenue dans le Reporting HSE,
+   onglet « VMS & QHP »), envoyées par le serveur à un appareil branché. Menu déroulant + « Autre… ». */
+function afficherVisiteurs() {
+  let l = [];
+  try { l = JSON.parse(localStorage.getItem(CLE_VIS) || '[]'); } catch (e) {}
+  const sel = document.getElementById('visiteur'); if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Qui fait la visite ? —</option>' + l.map(n => '<option value="' + echapper(n) + '">' + echapper(n) + '</option>').join('') + '<option value="__autre">Autre…</option>';
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+function visiteurChoisi() {
+  const sel = document.getElementById('visiteur'), autre = document.getElementById('visiteur-autre');
+  if (!sel || !autre) return;
+  autre.style.display = sel.value === '__autre' ? '' : 'none';
+  if (sel.value === '__autre') autre.focus();
+}
+function visiteurValeur() {
+  const sel = document.getElementById('visiteur'), autre = document.getElementById('visiteur-autre');
+  if (!sel) return '';
+  return sel.value === '__autre' ? (autre ? autre.value.trim() : '') : sel.value;
+}
+/* pose une valeur (brouillon restauré) : dans la liste si elle y est, sinon en « Autre… » */
+function visiteurPoser(v) {
+  const sel = document.getElementById('visiteur'), autre = document.getElementById('visiteur-autre');
+  if (!sel) return; v = String(v || '');
+  if (!v) { sel.value = ''; if (autre) autre.value = ''; visiteurChoisi(); return; }
+  if ([...sel.options].some(o => o.value === v)) { sel.value = v; if (autre) autre.value = ''; }
+  else { sel.value = '__autre'; if (autre) autre.value = v; }
+  visiteurChoisi();
+}
 async function pingServeur() {
   if (!estBranche()) return;
   try {
@@ -92,6 +125,10 @@ async function pingServeur() {
     if (j.ok && Array.isArray(j.responsables)) {
       try { localStorage.setItem(CLE_RESP, JSON.stringify(j.responsables)); } catch (e) {}
       afficherResponsables();
+    }
+    if (j.ok && Array.isArray(j.visiteurs)) {
+      try { localStorage.setItem(CLE_VIS, JSON.stringify(j.visiteurs)); } catch (e) {}
+      afficherVisiteurs();
     }
   } catch (e) { /* hors réseau : la dernière liste reçue sert */ }
 }
@@ -499,7 +536,7 @@ function collecterDonnees() {
     chantier: g('chantier'),
     agence: g('agence'),
     activite: g('activite'),
-    visiteur: g('visiteur'),
+    visiteur: visiteurValeur(),
     conducteur: g('conducteur'),
     collaborateurs: g('collaborateurs'),
     bilan: g('bilan-global'),
@@ -521,6 +558,13 @@ async function envoyerAuSheet(data) {
   if (!estBranche()) return { ok: false, nonBranche: true };
   // PP exclus + lignes vides ignorées (les lignes blanches servent à la saisie papier)
   const aEnvoyer = data.observations.filter(o => o.type !== 'PP' && ((o.description || '').trim() || (o.action || '').trim()));
+  /* V2.1 — la VISITE elle-même est enregistrée (n°, date, chantier, agence, visiteur, nombre
+     d'observations), même sans observation : c'est elle que le Reporting compte par personne. */
+  try {
+    const v = await poster({ action: 'visite', nVMS: data.nVMS, dateVisite: data.date, chantier: data.chantier, agence: data.agence,
+      visiteur: data.visiteur, conducteur: data.conducteur, nbObs: aEnvoyer.length });
+    if (!v.ok) return { ok: false, erreur: v.erreur || v.message };
+  } catch (e) { return { ok: false, erreur: e.message, refus: e.refus }; }
   if (aEnvoyer.length === 0) return { ok: true, aucune: true };
   try {
     const j = await poster({ action: 'lignes', nVMS: data.nVMS, dateVisite: data.date, chantier: data.chantier, agence: data.agence,
@@ -896,8 +940,9 @@ function nouvelleVMS() {
   numeroDefinitif = false;
   document.getElementById('vms-numero').textContent = numeroProvisoire();
   document.getElementById('date-visite').valueAsDate = new Date();
-  ['chantier','agence','activite','visiteur','conducteur','collaborateurs','bilan-global','commentaires','sign-name-1','sign-name-2']
+  ['chantier','agence','activite','conducteur','collaborateurs','bilan-global','commentaires','sign-name-1','sign-name-2']
     .forEach(id => { document.getElementById(id).value = ''; });
+  visiteurPoser('');
   document.getElementById('obs-tbody').innerHTML = '';
   document.getElementById('photos-chantier-preview').innerHTML = '';
   clearCanvas('drawingCanvas1');
@@ -1010,6 +1055,6 @@ async function demarrerVms() {
   setupCanvas('drawingCanvas2');
   afficherResponsables();
   majBandeau();
-  pingServeur();
+  afficherVisiteurs(); pingServeur();
 }
 demarrerVms();
