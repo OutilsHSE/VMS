@@ -9,7 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <link rel="stylesheet" href="css/vms.css">
+  <link rel="stylesheet" href="css/vms.css?v=2.1">
 </head>
 
   <!-- HEADER -->
@@ -65,7 +65,8 @@
       <div class="grid-3">
         <div class="field">
           <label>Visiteur (manager)</label>
-          <input type="text" id="visiteur" placeholder="Nom / Fonction">
+          <select id="visiteur" onchange="visiteurChoisi()"><option value="">— Qui fait la visite ? —</option><option value="__autre">Autre…</option></select>
+          <input type="text" id="visiteur-autre" placeholder="Nom / Fonction" style="display:none;margin-top:6px">
         </div>
         <div class="field">
           <label>Conducteur de travaux / Responsable</label>
@@ -280,6 +281,6 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
-  <script src="js/vms.js"></script>
+  <script src="js/vms.js?v=2.1"></script>
 </body>
 </html>
